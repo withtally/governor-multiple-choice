@@ -446,10 +446,11 @@ contract GovernorCountingMultipleChoiceTest is Test, GovernorProposalMultipleCho
 
     // --- VOTE COUNTING & STATE TESTS ---
 
-    function test_VoteCountsWhenNoVotesCast() public {
+    function test_StdProposal_VoteCountsWhenNoVotesCast() public {
         // Create a standard proposal
         vm.prank(PROPOSER);
         uint256 proposalId = governor.propose(targets, values, calldatas, description);
+        // console.log("Standard Proposal ID:", proposalId);
 
         // Verify initial counts are zero before voting starts
         (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(proposalId);
@@ -457,39 +458,88 @@ contract GovernorCountingMultipleChoiceTest is Test, GovernorProposalMultipleCho
         assertEq(forVotes, 0, "Initial for votes should be 0");
         assertEq(abstainVotes, 0, "Initial abstain votes should be 0");
 
+        // Calculate expected vote start/end based on proposal creation block + settings
+        uint256 creationBlock = block.number;
+        uint256 calculatedVoteStart = creationBlock + governor.votingDelay();
+        uint256 calculatedVoteEnd = calculatedVoteStart + governor.votingPeriod();
+        // console.log("Initial Block Number:", creationBlock);
+        // console.log("Voting Delay:", governor.votingDelay());
+        // console.log("Voting Period:", governor.votingPeriod());
+        // console.log("Calculated voteStart:", calculatedVoteStart);
+        // console.log("Calculated voteEnd:", calculatedVoteEnd);
+
         // Move blocks forward past voting period without casting votes
-        vm.roll(block.number + governor.votingDelay() + governor.votingPeriod() + 1);
+        uint256 targetBlock = calculatedVoteEnd + 1;
+        // console.log("Rolling to block:", targetBlock);
+        vm.roll(targetBlock);
+        // console.log("Current Block Number after roll:", block.number);
+
+        // Log the state directly before asserting
+        IGovernor.ProposalState currentState = governor.state(proposalId);
+        // console.log("Actual state before assert (Standard Proposal):", uint256(currentState));
 
         // Verify proposal is defeated (assuming quorum > 0 or required threshold not met)
-        assertEq(uint256(governor.state(proposalId)), uint256(IGovernor.ProposalState.Defeated), "State should be Defeated with no votes");
+        assertEq(uint256(currentState), uint256(IGovernor.ProposalState.Defeated), "Std State should be Defeated with no votes");
 
         // Verify counts remain zero after voting period ends
         (againstVotes, forVotes, abstainVotes) = governor.proposalVotes(proposalId);
         assertEq(againstVotes, 0, "Final against votes should be 0");
         assertEq(forVotes, 0, "Final for votes should be 0");
         assertEq(abstainVotes, 0, "Final abstain votes should be 0");
+    }
 
+    function test_McProposal_VoteCountsWhenNoVotesCast() public {
         // Create a multiple choice proposal
         string[] memory options = new string[](3); 
         options[0] = "A"; options[1] = "B"; options[2] = "C";
         vm.prank(PROPOSER);
+        // uint256 blockBeforeMC = block.number;
+        // console.log("\nBlock number before MC proposal:", blockBeforeMC);
         uint256 mcProposalId = governor.propose(targets, values, calldatas, description, options);
+        // console.log("MC Proposal ID:", mcProposalId);
+
+        // Verify initial standard counts are zero 
+        (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(mcProposalId);
+        assertEq(againstVotes, 0, "Initial MC against votes should be 0");
+        assertEq(forVotes, 0, "Initial MC for votes should be 0");
+        assertEq(abstainVotes, 0, "Initial MC abstain votes should be 0");
 
         // Verify initial option counts are zero
         assertEq(governor.proposalOptionVotes(mcProposalId, 0), 0, "Initial Option A votes should be 0");
         assertEq(governor.proposalOptionVotes(mcProposalId, 1), 0, "Initial Option B votes should be 0");
         assertEq(governor.proposalOptionVotes(mcProposalId, 2), 0, "Initial Option C votes should be 0");
         
+        // Calculate MC vote start/end
+        uint256 mcCreationBlock = block.number;
+        uint256 mcCalculatedVoteStart = mcCreationBlock + governor.votingDelay();
+        uint256 mcCalculatedVoteEnd = mcCalculatedVoteStart + governor.votingPeriod();
+        // console.log("MC Initial Block Number:", mcCreationBlock);
+        // console.log("MC Calculated voteStart:", mcCalculatedVoteStart);
+        // console.log("MC Calculated voteEnd:", mcCalculatedVoteEnd);
+
         // Move past voting period
-        vm.roll(block.number + governor.votingDelay() + governor.votingPeriod() + 1);
+        uint256 mcTargetBlock = mcCalculatedVoteEnd + 1;
+        // console.log("Rolling to block for MC:", mcTargetBlock);
+        vm.roll(mcTargetBlock);
+        // console.log("Current Block Number after MC roll:", block.number);
+
+        // Log the state directly before asserting for MC proposal
+        IGovernor.ProposalState mcCurrentState = governor.state(mcProposalId);
+        // console.log("Actual state before assert (MC Proposal):", uint256(mcCurrentState));
 
         // Verify state is Defeated
-        assertEq(uint256(governor.state(mcProposalId)), uint256(IGovernor.ProposalState.Defeated), "MC State should be Defeated with no votes");
+        assertEq(uint256(mcCurrentState), uint256(IGovernor.ProposalState.Defeated), "MC State should be Defeated with no votes");
 
         // Verify final option counts are zero
         assertEq(governor.proposalOptionVotes(mcProposalId, 0), 0, "Final Option A votes should be 0");
         assertEq(governor.proposalOptionVotes(mcProposalId, 1), 0, "Final Option B votes should be 0");
         assertEq(governor.proposalOptionVotes(mcProposalId, 2), 0, "Final Option C votes should be 0");
+
+        // Verify final standard counts are also zero
+        (againstVotes, forVotes, abstainVotes) = governor.proposalVotes(mcProposalId);
+        assertEq(againstVotes, 0, "Final MC against votes should be 0");
+        assertEq(forVotes, 0, "Final MC for votes should be 0");
+        assertEq(abstainVotes, 0, "Final MC abstain votes should be 0");
     }
 
     // --- PROPOSAL STATE TRANSITION TESTS ---
