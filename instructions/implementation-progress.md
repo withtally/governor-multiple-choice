@@ -7,17 +7,20 @@
 - [x] Create placeholder files and directory structure
 - [x] Commit initial setup
 
-## Phase 2: Core Multiple Choice Implementation 🔄
-- [ ] Implement GovernorCountingMultipleChoice contract
-  - [ ] Define state variables
-  - [ ] Implement propose function with options
-  - [ ] Implement vote counting logic
-  - [ ] Implement option queries
-- [ ] Create unit tests for GovernorCountingMultipleChoice
+## Phase 2: Core Multiple Choice Implementation ✅
+- [x] Implement GovernorCountingMultipleChoice contract
+  - [x] Define state variables
+  - [x] Implement propose function with options
+  - [x] Implement vote counting logic
+  - [x] Implement option queries
+- [x] Create example Governor implementation using the module
 
-## Phase 3: Evaluator Implementation ⏳
-- [ ] Implement MultipleChoiceEvaluator contract
-- [ ] Create unit tests for MultipleChoiceEvaluator
+## Phase 3: Evaluator Implementation 🔄
+- [x] Implement MultipleChoiceEvaluator contract
+  - [x] Define evaluation strategies interface
+  - [x] Implement plurality evaluation
+  - [x] Implement majority evaluation
+- [ ] Create evaluator tests
 
 ## Phase 4: Testing ⏳
 - [ ] Write integration tests
@@ -26,4 +29,26 @@
 
 ## Phase 5: Documentation and Integration ⏳
 - [ ] Update documentation
-- [ ] Create example integrations 
+- [ ] Create example integrations
+
+## Completed Work
+
+### Phase 1
+- Set up project with Forge
+- Installed OpenZeppelin contracts
+- Configured remappings
+- Created directory structure
+
+### Phase 2
+- Created GovernorCountingMultipleChoice module
+  - Support for multiple choice options in proposals
+  - Extended vote counting logic
+  - Backward compatibility with standard proposals
+- Created example implementation of the module
+  - Integrated with standard Governor modules
+  - Support for proposal creation with options
+
+### Phase 3 (Partial)
+- Created MultipleChoiceEvaluator contract
+  - Support for different evaluation strategies
+  - Plurality and majority implementations 
