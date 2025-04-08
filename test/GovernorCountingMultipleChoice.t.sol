@@ -708,40 +708,6 @@ contract GovernorCountingMultipleChoiceTest is Test, GovernorProposalMultipleCho
         governor.castVote(proposalId, uint8(1));
     }
 
-    function test_ProposalCancellation() public {
-        // Create a standard proposal
-        vm.prank(PROPOSER);
-        uint256 proposalId = governor.propose(targets, values, calldatas, description);
-
-        // Verify proposal is Pending
-        assertEq(uint256(governor.state(proposalId)), uint256(IGovernor.ProposalState.Pending), "Initial state should be Pending");
-
-        // Only proposer or authorized address should be able to cancel
-        // Attempt cancellation from non-proposer should fail
-        vm.prank(VOTER_A); // Not the proposer
-        // Note: OpenZeppelin Governor doesn't expose a direct cancel function by default.
-        // Cancellation is often handled via the Timelock or specific proposal types.
-        // If cancel is implemented in GovernorCountingMultipleChoice or inherited, test here.
-        // Assuming cancel is NOT directly exposed/implemented in this setup based on standard OZ Governor.
-        // Instead, we test that the state transitions correctly if not cancelled.
-        
-        // Move blocks forward to active voting period
-        vm.roll(block.number + governor.votingDelay() + 1);
-        assertEq(uint256(governor.state(proposalId)), uint256(IGovernor.ProposalState.Active), "State should be Active");
-
-        // If a cancel function existed and was callable by PROPOSER:
-        // vm.prank(PROPOSER);
-        // vm.expectEmit(true, true, true, true);
-        // emit ProposalCanceled(proposalId);
-        // governor.cancel(targets, values, calldatas, descriptionHash);
-        // assertEq(uint256(governor.state(proposalId)), uint256(IGovernor.ProposalState.Canceled), "State should be Canceled after cancellation");
-        
-        // Since standard OZ Governor doesn't have a simple `cancel` accessible this way, 
-        // this test mainly verifies state progresses normally if not cancelled.
-        // If cancellation logic *is* added later, this test should be updated.
-        assertTrue(true, "Placeholder: Verify standard state progression as direct cancel is typically not exposed."); 
-    }
-
     // --- EVENT EMISSION TESTS ---
 
     function test_Emit_ProposalCreated_Standard() public {

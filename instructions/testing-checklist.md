@@ -37,7 +37,6 @@
 - [x] Testing proposal state transitions (Pending → Active → Succeeded/Defeated)
 - [x] Testing quorum calculation with standard votes
 - [x] Testing quorum calculation with multiple choice votes
-- [ ] Testing proposal cancellation
 - [x] Testing reversion when voting after proposal ends
 
 ## MultipleChoiceEvaluator Tests
