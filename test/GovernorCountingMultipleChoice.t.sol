@@ -542,6 +542,48 @@ contract GovernorCountingMultipleChoiceTest is Test, GovernorProposalMultipleCho
         assertEq(abstainVotes, 0, "Final MC abstain votes should be 0");
     }
 
+    function test_ProposalAllVotes() public {
+        // Create a multiple choice proposal with 3 options
+        string[] memory options = new string[](3);
+        options[0] = "Option A";
+        options[1] = "Option B";
+        options[2] = "Option C";
+        
+        vm.prank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, calldatas, description, options);
+        
+        // Move blocks forward to active voting period
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        // Cast a mix of votes
+        vm.prank(VOTER_A); // 100 votes
+        governor.castVote(proposalId, uint8(0)); // Against
+
+        vm.prank(VOTER_B); // 200 votes
+        governor.castVote(proposalId, uint8(1)); // For (Standard)
+
+        vm.prank(VOTER_C); // 300 votes
+        governor.castVoteWithOption(proposalId, 0); // Option A
+
+        vm.prank(VOTER_D); // 400 votes
+        governor.castVoteWithOption(proposalId, 2); // Option C
+
+        // Get all vote counts
+        uint256[] memory allVotes = governor.proposalAllVotes(proposalId);
+
+        // Expected array length = 3 standard votes + 3 option votes = 6
+        assertEq(allVotes.length, 6, "Array length should be 6 (3 standard + 3 options)");
+
+        // Verify counts in the expected order: Against, For, Abstain, Opt0, Opt1, Opt2
+        assertEq(allVotes[0], 100, "Against votes mismatch (VOTER_A)");
+        // For votes = Standard For (VOTER_B) + Option A (VOTER_C) + Option C (VOTER_D)
+        assertEq(allVotes[1], 200 + 300 + 400, "For votes mismatch (Std + Options)"); 
+        assertEq(allVotes[2], 0, "Abstain votes should be 0");
+        assertEq(allVotes[3], 300, "Option 0 votes mismatch (VOTER_C)");
+        assertEq(allVotes[4], 0, "Option 1 votes should be 0");
+        assertEq(allVotes[5], 400, "Option 2 votes mismatch (VOTER_D)");
+    }
+
     // --- PROPOSAL STATE TRANSITION TESTS ---
 
     function test_ProposalStateTransitions() public {
@@ -698,5 +740,102 @@ contract GovernorCountingMultipleChoiceTest is Test, GovernorProposalMultipleCho
         // this test mainly verifies state progresses normally if not cancelled.
         // If cancellation logic *is* added later, this test should be updated.
         assertTrue(true, "Placeholder: Verify standard state progression as direct cancel is typically not exposed."); 
+    }
+
+    // --- EVENT EMISSION TESTS ---
+
+    function test_Emit_ProposalCreated_Standard() public {
+        vm.startPrank(PROPOSER);
+        // Expect ProposalCreated event (skip proposalId, check proposer, skip unused topic, skip data)
+        vm.expectEmit(false, true, false, false);
+        emit IGovernor.ProposalCreated(
+            0, // proposalId - skip check
+            PROPOSER, // Check proposer
+            targets,
+            values,
+            new string[](1), // signatures 
+            calldatas,
+            0, // voteStart - skip check
+            0, // voteEnd - skip check
+            description
+        );
+        uint256 proposalId = governor.propose(targets, values, calldatas, description);
+        vm.stopPrank();
+        // Basic check that proposalId is generated
+        assertGt(proposalId, 0, "Proposal ID should be generated");
+    }
+
+    function test_Emit_ProposalCreated_MultipleChoice() public {
+        string[] memory options = new string[](3); 
+        options[0] = "A"; options[1] = "B"; options[2] = "C";
+
+        vm.startPrank(PROPOSER);
+        // Expect ProposalCreated event (skip proposalId, check proposer, skip unused topic, skip data)
+        vm.expectEmit(false, true, false, false); 
+        emit IGovernor.ProposalCreated(
+            0, // proposalId - skip check
+            PROPOSER, // Check proposer
+            targets,
+            values,
+            new string[](1), // signatures
+            calldatas,
+            0, // voteStart - skip check
+            0, // voteEnd - skip check
+            description
+        );
+        // Expect ProposalOptionsCreated event (check indexed proposalId and non-indexed options)
+        // This event is specific to our contract. Skip all checks for now just to verify emission.
+        vm.expectEmit(false, false, false, false);
+        emit GovernorProposalMultipleChoiceOptions.ProposalOptionsCreated(
+            0, // proposalId - Skip check
+            options // Data - Skip check
+        );
+
+        uint256 proposalId = governor.propose(targets, values, calldatas, description, options);
+        vm.stopPrank();
+        assertGt(proposalId, 0, "Proposal ID should be generated");
+
+        // Dynamically check the proposalId in the second event if needed, 
+        // although vm.expectEmit(true,...) implicitly checks if the topic matches *something*.
+        // For exact match: Re-run propose in a separate step after getting proposalId if strict check is desired.
+    }
+
+    function test_Emit_VoteCast_Standard() public {
+        // Create a standard proposal
+        vm.prank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, calldatas, description);
+        
+        // Move blocks forward to active voting period
+        vm.roll(block.number + governor.votingDelay() + 1);
+        
+        vm.startPrank(VOTER_A);
+        uint256 weight = token.getVotes(VOTER_A);
+        // Expect VoteCast event (check indexed voter, proposalId, support)
+        vm.expectEmit(true, true, true, true);
+        emit IGovernor.VoteCast(VOTER_A, proposalId, uint8(1), weight, ""); // support = For, reason = empty
+        governor.castVote(proposalId, uint8(1));
+        vm.stopPrank();
+    }
+
+    function test_Emit_VoteCastWithOption() public {
+        // Create a multiple choice proposal
+        string[] memory options = new string[](3); 
+        options[0] = "A"; options[1] = "B"; options[2] = "C";
+        vm.prank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, calldatas, description, options);
+        
+        // Move blocks forward to active voting period
+        vm.roll(block.number + governor.votingDelay() + 1);
+        
+        vm.startPrank(VOTER_B);
+        uint256 weight = token.getVotes(VOTER_B);
+        uint8 optionIndex = 1; // Vote for Option B
+        // Expect VoteCastWithParams event (check indexed voter, proposalId, support)
+        // The option index is encoded in the non-indexed `params` field
+        vm.expectEmit(true, true, true, true);
+        bytes memory expectedParams = abi.encodePacked(optionIndex);
+        emit IGovernor.VoteCastWithParams(VOTER_B, proposalId, uint8(1), weight, "", expectedParams); // support = 1 for option vote
+        governor.castVoteWithOption(proposalId, optionIndex);
+        vm.stopPrank();
     }
 }

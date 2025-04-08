@@ -15,7 +15,7 @@
 
 ### Vote Casting
 - [x] Casting standard votes (For, Against, Abstain) on a standard proposal
-- [ ] Casting standard votes on a multiple choice proposal
+- [x] Casting standard votes on a multiple choice proposal
 - [x] Casting multiple choice votes on a multiple choice proposal
 - [x] Attempting to cast a multiple choice vote on a standard proposal (should revert)
 - [x] Attempting to cast a vote for an invalid option index (should revert)
@@ -27,7 +27,7 @@
 - [x] Verifying standard proposalVotes function returns correct counts
 - [ ] Verifying proposalAllVotes function returns all vote counts
 - [x] Verifying proposalOptionVotes returns individual option vote counts
-- [ ] Verifying vote counts when no votes are cast
+- [x] Verifying vote counts when no votes are cast
 
 ### State Transitions
 - [x] Testing proposal state transitions (Pending → Active → Succeeded/Defeated)

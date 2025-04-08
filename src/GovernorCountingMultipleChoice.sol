@@ -237,6 +237,29 @@ contract GovernorCountingMultipleChoice is
         return _proposalOptionVotesCount[proposalId][optionIndex];
     }
 
+    /**
+     * @dev Returns all vote counts for a proposal.
+     * The array order is: Against, For, Abstain, Option 0, Option 1, ..., Option N-1.
+     */
+    function proposalAllVotes(uint256 proposalId) public view virtual returns (uint256[] memory allVotes) {
+        // Get standard votes using the public function from GovernorCountingSimple
+        (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = proposalVotes(proposalId); 
+        
+        // Get multiple choice options
+        (, uint8 optionCount) = proposalOptions(proposalId);
+
+        uint256 arraySize = 3 + optionCount; // 3 standard + number of options
+        allVotes = new uint256[](arraySize);
+
+        allVotes[0] = againstVotes;
+        allVotes[1] = forVotes;
+        allVotes[2] = abstainVotes;
+
+        for (uint8 i = 0; i < optionCount; i++) {
+            allVotes[3 + i] = _proposalOptionVotesCount[proposalId][i];
+        }
+    }
+
     // --- Required Supports Interface --- 
     // (Needed because Governor is abstract)
 
