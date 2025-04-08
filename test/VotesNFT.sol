@@ -13,12 +13,8 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 contract VotesNFT is ERC721, ERC721Votes, Ownable {
     uint256 private _nextTokenId;
 
-    constructor(string memory name, string memory symbol)
-        ERC721(name, symbol)
-        EIP712(name, "1")
-        Ownable(msg.sender)
-    {}
-    
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) EIP712(name, "1") Ownable(msg.sender) {}
+
     function mint(address to) public onlyOwner returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _mint(to, tokenId);
@@ -27,18 +23,15 @@ contract VotesNFT is ERC721, ERC721Votes, Ownable {
 
     // The following functions are overrides required by Solidity.
 
-    function _update(address to, uint256 tokenId, address auth) 
-        internal 
-        override(ERC721, ERC721Votes) 
-        returns (address) 
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override(ERC721, ERC721Votes)
+        returns (address)
     {
         return super._update(to, tokenId, auth);
     }
 
-    function _increaseBalance(address account, uint128 amount) 
-        internal 
-        override(ERC721, ERC721Votes) 
-    {
+    function _increaseBalance(address account, uint128 amount) internal override(ERC721, ERC721Votes) {
         super._increaseBalance(account, amount);
     }
-} 
+}

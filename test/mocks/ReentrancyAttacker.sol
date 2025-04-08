@@ -28,7 +28,7 @@ contract ReentrancyAttacker {
         attackStandard = true;
         attackOption = false;
     }
-    
+
     function setAttackParamsOption(uint256 proposalId, uint8 optionIndex) public {
         proposalIdToAttack = proposalId;
         optionToAttack = optionIndex;
@@ -42,7 +42,7 @@ contract ReentrancyAttacker {
         attackOption = false;
         governor.castVote(proposalIdToAttack, supportToAttack);
     }
-    
+
     function initialAttackOption() public {
         attackStandard = false;
         attackOption = true;
@@ -54,22 +54,22 @@ contract ReentrancyAttacker {
         if (entered) return; // Prevent infinite loop within the attack itself
         entered = true;
         if (attackStandard) {
-             try governor.castVote(proposalIdToAttack, supportToAttack == 1 ? 0 : 1) { // Try voting differently
-                // Expected to fail due to nonReentrant or already voted
-            } catch { } 
+            try governor.castVote(proposalIdToAttack, supportToAttack == 1 ? 0 : 1) { // Try voting differently
+                    // Expected to fail due to nonReentrant or already voted
+            } catch {}
         }
         if (attackOption) {
-             try governor.castVoteWithOption(proposalIdToAttack, optionToAttack + 1) { // Try voting differently
-                // Expected to fail due to nonReentrant or already voted
-            } catch { } 
+            try governor.castVoteWithOption(proposalIdToAttack, optionToAttack + 1) { // Try voting differently
+                    // Expected to fail due to nonReentrant or already voted
+            } catch {}
         }
         entered = false;
     }
-    
+
     // Required for ERC721 tests if attacker holds an NFT
     function onERC721Received(address, address, uint256, bytes memory) public virtual returns (bytes4) {
-        // Similar re-entry logic could be placed here if the token transfer 
+        // Similar re-entry logic could be placed here if the token transfer
         // happened *during* the vote function and called back.
         return this.onERC721Received.selector;
     }
-} 
+}

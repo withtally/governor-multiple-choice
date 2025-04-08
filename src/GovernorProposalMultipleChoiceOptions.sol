@@ -33,7 +33,7 @@ abstract contract GovernorProposalMultipleChoiceOptions {
      * This is capped at 10 to prevent excessive gas costs and UI complexity.
      */
     uint8 public constant MAX_OPTIONS = 10;
-    
+
     /**
      * @dev Minimum number of options required for a multiple choice proposal.
      * At least 2 options are required for a meaningful choice.
@@ -74,4 +74,4 @@ abstract contract GovernorProposalMultipleChoiceOptions {
 
         emit ProposalOptionsCreated(proposalId, options);
     }
-} 
+}

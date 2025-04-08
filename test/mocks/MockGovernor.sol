@@ -10,12 +10,13 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol"; // Needed if
  * @dev Mock contract for GovernorCountingMultipleChoice to isolate evaluator testing.
  * Simulates the functions required by MultipleChoiceEvaluator.
  */
-contract MockGovernor is Ownable(msg.sender) { // Inherit Ownable if needed for mocks
-    
+contract MockGovernor is
+    Ownable(msg.sender) // Inherit Ownable if needed for mocks
+{
     // Mapping to store mock return values for proposalAllVotes
     // proposalId => vote counts array (Against, For, Abstain, Opt0, Opt1, ...)
     mapping(uint256 => uint256[]) internal _mockProposalAllVotes;
-    
+
     // Store the evaluator address
     address public evaluatorAddress;
 
@@ -35,7 +36,7 @@ contract MockGovernor is Ownable(msg.sender) { // Inherit Ownable if needed for 
      * Only callable by the test contract (or owner if permissions enforced).
      */
     function setProposalAllVotes(uint256 proposalId, uint256[] memory votes) public {
-        // In a real scenario, you might want Ownable control here, 
+        // In a real scenario, you might want Ownable control here,
         // but for simple testing, public is fine if deployed only by the test harness.
         _mockProposalAllVotes[proposalId] = votes;
     }
@@ -49,6 +50,6 @@ contract MockGovernor is Ownable(msg.sender) { // Inherit Ownable if needed for 
         evaluatorAddress = _evaluator;
         emit EvaluatorSet(_evaluator);
     }
-    
+
     // Add other mocked functions here if the Evaluator needs them later
-} 
+}

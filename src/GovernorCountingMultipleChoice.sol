@@ -8,7 +8,8 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import {GovernorVotesQuorumFraction} from
+    "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 import {GovernorProposalMultipleChoiceOptions} from "./GovernorProposalMultipleChoiceOptions.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
@@ -61,16 +62,12 @@ contract GovernorCountingMultipleChoice is
      * @param _timelock The timelock controller for proposal execution
      * @param _name The name of the governor instance
      */
-    constructor(
-        IVotes _token,
-        TimelockController _timelock,
-        string memory _name
-    ) 
-        Governor(_name) 
-        GovernorSettings(1, 4, 0) 
-        GovernorVotes(_token) 
-        GovernorVotesQuorumFraction(4) 
-        GovernorTimelockControl(_timelock) 
+    constructor(IVotes _token, TimelockController _timelock, string memory _name)
+        Governor(_name)
+        GovernorSettings(1, 4, 0)
+        GovernorVotes(_token)
+        GovernorVotesQuorumFraction(4)
+        GovernorTimelockControl(_timelock)
         Ownable(msg.sender) // Call Ownable constructor
     {}
 
@@ -153,7 +150,13 @@ contract GovernorCountingMultipleChoice is
      * @param proposalId The ID of the proposal
      * @return The current ProposalState
      */
-    function state(uint256 proposalId) public view virtual override(Governor, GovernorTimelockControl) returns (ProposalState) {
+    function state(uint256 proposalId)
+        public
+        view
+        virtual
+        override(Governor, GovernorTimelockControl)
+        returns (ProposalState)
+    {
         return super.state(proposalId);
     }
 
@@ -181,7 +184,13 @@ contract GovernorCountingMultipleChoice is
      * @param blockNumber The block number to get the quorum at
      * @return The minimum number of votes required for quorum
      */
-    function quorum(uint256 blockNumber) public view virtual override(Governor, GovernorVotesQuorumFraction) returns (uint256) {
+    function quorum(uint256 blockNumber)
+        public
+        view
+        virtual
+        override(Governor, GovernorVotesQuorumFraction)
+        returns (uint256)
+    {
         return super.quorum(blockNumber);
     }
 
@@ -203,7 +212,13 @@ contract GovernorCountingMultipleChoice is
      * @param proposalId The ID of the proposal
      * @return True if the proposal needs queuing, false otherwise
      */
-    function proposalNeedsQueuing(uint256 proposalId) public view virtual override(Governor, GovernorTimelockControl) returns (bool) {
+    function proposalNeedsQueuing(uint256 proposalId)
+        public
+        view
+        virtual
+        override(Governor, GovernorTimelockControl)
+        returns (bool)
+    {
         return super.proposalNeedsQueuing(proposalId);
     }
 
@@ -216,7 +231,13 @@ contract GovernorCountingMultipleChoice is
      * @param descriptionHash The hash of the proposal description
      * @return The timestamp at which the proposal will be ready for execution
      */
-    function _queueOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
+    function _queueOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
         return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
@@ -228,7 +249,13 @@ contract GovernorCountingMultipleChoice is
      * @param calldatas The calldata to send with each call
      * @param descriptionHash The hash of the proposal description
      */
-    function _executeOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) {
+    function _executeOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal virtual override(Governor, GovernorTimelockControl) {
         super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
@@ -240,7 +267,12 @@ contract GovernorCountingMultipleChoice is
      * @param descriptionHash The hash of the proposal description
      * @return The ID of the canceled proposal
      */
-    function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) returns (uint256) {
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal virtual override(Governor, GovernorTimelockControl) returns (uint256) {
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
@@ -256,13 +288,12 @@ contract GovernorCountingMultipleChoice is
      * @param params Additional parameters, used for option index in multiple choice votes
      * @return The weight that was counted
      */
-    function _countVote(
-        uint256 proposalId,
-        address account,
-        uint8 support,
-        uint256 weight,
-        bytes memory params
-    ) internal virtual override(Governor, GovernorCountingSimple) returns (uint256) {
+    function _countVote(uint256 proposalId, address account, uint8 support, uint256 weight, bytes memory params)
+        internal
+        virtual
+        override(Governor, GovernorCountingSimple)
+        returns (uint256)
+    {
         // Call GovernorCountingSimple implementation first
         uint256 countedWeight = super._countVote(proposalId, account, support, weight, params);
 
@@ -288,14 +319,14 @@ contract GovernorCountingMultipleChoice is
      * @param reason The reason for the vote (optional)
      * @return The weight of the cast vote
      */
-    function _castVote(
-        uint256 proposalId,
-        address account,
-        uint8 support,
-        string memory reason
-    ) internal virtual override returns (uint256) {
-         return _internalCastVote(proposalId, account, support, reason, "");
-     }
+    function _castVote(uint256 proposalId, address account, uint8 support, string memory reason)
+        internal
+        virtual
+        override
+        returns (uint256)
+    {
+        return _internalCastVote(proposalId, account, support, reason, "");
+    }
 
     /**
      * @dev Internal cast vote logic that includes params.
@@ -351,7 +382,12 @@ contract GovernorCountingMultipleChoice is
      * @param optionIndex The index of the option to get votes for
      * @return optionVotes The number of votes for the specified option
      */
-    function proposalOptionVotes(uint256 proposalId, uint8 optionIndex) public view virtual returns (uint256 optionVotes) {
+    function proposalOptionVotes(uint256 proposalId, uint8 optionIndex)
+        public
+        view
+        virtual
+        returns (uint256 optionVotes)
+    {
         (, uint8 optionCount) = proposalOptions(proposalId);
         require(optionIndex < optionCount, "Governor: invalid option index");
         return _proposalOptionVotesCount[proposalId][optionIndex];
@@ -365,8 +401,8 @@ contract GovernorCountingMultipleChoice is
      */
     function proposalAllVotes(uint256 proposalId) public view virtual returns (uint256[] memory allVotes) {
         // Get standard votes using the public function from GovernorCountingSimple
-        (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = proposalVotes(proposalId); 
-        
+        (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = proposalVotes(proposalId);
+
         // Get multiple choice options
         (, uint8 optionCount) = proposalOptions(proposalId);
 
@@ -382,7 +418,7 @@ contract GovernorCountingMultipleChoice is
         }
     }
 
-    // --- Required Supports Interface --- 
+    // --- Required Supports Interface ---
 
     /**
      * @dev See {IERC165-supportsInterface}.
@@ -392,5 +428,4 @@ contract GovernorCountingMultipleChoice is
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return super.supportsInterface(interfaceId);
     }
-
-} 
+}

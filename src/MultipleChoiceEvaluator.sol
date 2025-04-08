@@ -15,7 +15,7 @@ interface IMultipleChoiceGovernor is IGovernor {
     /**
      * @dev Returns all vote counts for a proposal.
      * @param proposalId The ID of the proposal
-     * @return An array of vote counts in the order: 
+     * @return An array of vote counts in the order:
      * [Against, For, Abstain, Option 0, Option 1, ..., Option N-1]
      */
     function proposalAllVotes(uint256 proposalId) external view returns (uint256[] memory);
@@ -39,11 +39,12 @@ contract MultipleChoiceEvaluator is Ownable {
     enum EvaluationStrategy {
         Plurality, // Highest vote count wins (ties broken by lower index)
         Majority // Requires >50% of total option votes
+
     }
 
     /// @dev Reference to the governor contract that this evaluator works with
     IMultipleChoiceGovernor public governor;
-    
+
     /// @dev The current evaluation strategy being used
     EvaluationStrategy public evaluationStrategy;
 
@@ -52,7 +53,7 @@ contract MultipleChoiceEvaluator is Ownable {
      * @param newStrategy The new evaluation strategy
      */
     event EvaluationStrategySet(EvaluationStrategy newStrategy);
-    
+
     /**
      * @dev Emitted when the governor address is updated.
      * @param newGovernor The address of the new governor
@@ -78,7 +79,7 @@ contract MultipleChoiceEvaluator is Ownable {
         evaluationStrategy = _strategy;
         emit EvaluationStrategySet(_strategy);
     }
-    
+
     /**
      * @dev Updates the governor address.
      * Only callable by the owner.
@@ -104,10 +105,7 @@ contract MultipleChoiceEvaluator is Ownable {
      * @param strategy The evaluation strategy to use
      * @return winningOption The winning option index or type(uint256).max if no winner
      */
-    function evaluate(
-        uint256 proposalId,
-        EvaluationStrategy strategy
-    ) public view returns (uint256 winningOption) {
+    function evaluate(uint256 proposalId, EvaluationStrategy strategy) public view returns (uint256 winningOption) {
         return _evaluate(proposalId, strategy);
     }
 
@@ -117,10 +115,7 @@ contract MultipleChoiceEvaluator is Ownable {
      * @param strategy The evaluation strategy to use
      * @return winningOption The winning option index or type(uint256).max if no winner
      */
-    function _evaluate(
-        uint256 proposalId,
-        EvaluationStrategy strategy
-    ) internal view returns (uint256 winningOption) {
+    function _evaluate(uint256 proposalId, EvaluationStrategy strategy) internal view returns (uint256 winningOption) {
         uint256[] memory allVotes = governor.proposalAllVotes(proposalId);
         uint256 numOptions = allVotes.length - 3; // Total votes array length minus the 3 standard counts
 
@@ -139,10 +134,11 @@ contract MultipleChoiceEvaluator is Ownable {
      * @param numOptions Number of multiple choice options
      * @return winningOption The winning option index or 0 if no votes cast
      */
-    function _evaluatePlurality(
-        uint256[] memory allVotes,
-        uint256 numOptions
-    ) internal pure returns (uint256 winningOption) {
+    function _evaluatePlurality(uint256[] memory allVotes, uint256 numOptions)
+        internal
+        pure
+        returns (uint256 winningOption)
+    {
         uint256 maxVotes = 0;
         winningOption = 0; // Default to option 0 in case of 0 votes or if 0 wins
 
@@ -165,10 +161,11 @@ contract MultipleChoiceEvaluator is Ownable {
      * @param numOptions Number of multiple choice options
      * @return winningOption The winning option index or type(uint256).max if no majority
      */
-    function _evaluateMajority(
-        uint256[] memory allVotes,
-        uint256 numOptions
-    ) internal pure returns (uint256 winningOption) {
+    function _evaluateMajority(uint256[] memory allVotes, uint256 numOptions)
+        internal
+        pure
+        returns (uint256 winningOption)
+    {
         uint256 totalOptionVotes = 0;
         for (uint256 i = 0; i < numOptions; i++) {
             totalOptionVotes += allVotes[3 + i];
@@ -177,7 +174,7 @@ contract MultipleChoiceEvaluator is Ownable {
         if (totalOptionVotes == 0) {
             return type(uint256).max; // No votes, no majority
         }
-        
+
         uint256 majorityThreshold = totalOptionVotes / 2;
 
         for (uint256 i = 0; i < numOptions; i++) {
@@ -188,4 +185,4 @@ contract MultipleChoiceEvaluator is Ownable {
 
         return type(uint256).max; // No majority found
     }
-} 
+}
