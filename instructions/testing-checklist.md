@@ -42,72 +42,73 @@
 ## MultipleChoiceEvaluator Tests
 
 ### Plurality Evaluation
-- [ ] Testing basic plurality evaluation (highest vote wins)
-- [ ] Testing plurality with tied votes
-- [ ] Testing plurality with no votes cast
-- [ ] Testing plurality with single option receiving votes
+- [x] Testing basic plurality evaluation (highest vote wins)
+- [x] Testing plurality with tied votes
+- [x] Testing plurality with no votes cast
+- [x] Testing plurality with single option receiving votes
 
 ### Majority Evaluation
-- [ ] Testing majority evaluation with clear majority (>50%)
-- [ ] Testing majority evaluation with no clear majority
-- [ ] Testing majority with exact 50% (not a majority)
-- [ ] Testing majority with no votes cast
+- [x] Testing majority evaluation with clear majority (>50%)
+- [x] Testing majority evaluation with no clear majority
+- [x] Testing majority with exact 50% (not a majority)
+- [x] Testing majority with no votes cast
 
 ### Other Evaluation Strategies
-- [ ] Testing unsupported strategies (should revert)
-- [ ] Testing custom strategy implementations
+- [x] Testing unsupported strategies (should revert)
+- [ ] Testing custom strategy implementations // TODO: Requires defining a custom IEvaluator
 
 ### Administrative Functions
-- [ ] Testing setEvaluationStrategy function
-- [ ] Testing updating the governor address
-- [ ] Testing authorization controls
+- [x] Testing setEvaluationStrategy function
+- [x] Testing updating the governor address
+- [x] Testing authorization controls (Ownable checks on setters)
 
 ## Integration Tests
 
 ### End-to-End Workflow
-- [ ] Complete workflow: proposal creation → voting → evaluation → execution
-- [ ] Testing with TimelockController integration
-- [ ] Testing with different token types (ERC20Votes, ERC721Votes)
+- [x] Complete workflow: proposal creation → voting → evaluation → execution (Tested Plurality, Majority, Standard, Quorum Failure)
+- [x] Testing with TimelockController integration
+- [x] Testing with different token types (ERC20Votes, ERC721Votes)
+- [x] Testing execution not dependent on winning option (Fixed)
 
 ### Compatibility
-- [ ] Verifying compatibility with standard Governor functions
-- [ ] Verifying compatibility with GovernorVotes module
-- [ ] Verifying compatibility with GovernorTimelockControl module
-- [ ] Verifying compatibility with GovernorSettings module
+- [x] Verifying compatibility with standard Governor functions
+- [x] Verifying compatibility with GovernorVotes module
+- [x] Verifying compatibility with GovernorTimelockControl module
+- [x] Verifying compatibility with GovernorSettings module
 
 ## Edge Cases and Security
 
 ### Edge Cases
-- [ ] Testing with extremely large vote counts
-- [ ] Testing with maximum number of voters
-- [ ] Testing with maximum gas consumption scenarios
-- [ ] Testing proposal execution based on different winning options
+- [x] Testing with extremely large vote counts
+- [ ] Testing with maximum number of voters // TODO
+- [ ] Testing with maximum gas consumption scenarios // TODO: Gas snapshots added
+- [x] Testing proposal execution based on different winning options (Fixed)
 
 ### Security
-- [ ] Testing against double voting
-- [ ] Testing against option manipulation
-- [ ] Testing authorization boundaries
-- [ ] Testing reentrancy protection
+- [x] Testing against double voting
+- [ ] Testing against option manipulation // TODO
+- [x] Testing authorization boundaries (Propose Threshold pending contract mod, SetEvaluator tested)
+- [x] Testing reentrancy protection (Basic check via attacker contract)
 
 ## Fork Tests
 
 ### Mainnet Compatibility
-- [ ] Testing deployment and integration with live governance contracts
-- [ ] Testing against existing multiple choice proposals (if any)
-- [ ] Testing against popular governance implementations (Compound, Uniswap, etc.)
+- [x] Testing deployment and integration with live governance contracts (Fixed setup with UNI - test skipped without RPC URL)
+- [ ] Testing against existing multiple choice proposals (if any) // TODO: Research required
+- [ ] Testing against popular governance implementations (Compound, Uniswap, etc.) // TODO: Research required
 
 ## Gas Optimization
 
 ### Gas Analysis
-- [ ] Measuring gas usage for proposal creation
-- [ ] Measuring gas usage for vote casting
-- [ ] Measuring gas usage for evaluation
-- [ ] Comparing gas usage with standard Governor implementations
+- [ ] Measuring gas usage for proposal creation // TODO: Snapshot added
+- [ ] Measuring gas usage for vote casting // TODO: Snapshot added
+- [ ] Measuring gas usage for evaluation // TODO: Snapshot added
+- [ ] Comparing gas usage with standard Governor implementations // TODO
 
 ## Documentation Verification
 
 ### Documentation Tests
-- [ ] Verifying example code in documentation works correctly
-- [ ] Verifying interfaces are documented correctly
-- [ ] Verifying events are documented correctly
-- [ ] Verifying error messages are documented correctly 
+- [ ] Verifying example code in documentation works correctly // TODO
+- [ ] Verifying interfaces are documented correctly // TODO: Verify NatSpec added
+- [ ] Verifying events are documented correctly // TODO: Verify NatSpec added
+- [ ] Verifying error messages are documented correctly // TODO: Verify NatSpec added 
