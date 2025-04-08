@@ -11,6 +11,17 @@ Governor Multiple Choice extends the standard OpenZeppelin Governor framework to
 - Evaluate results using different strategies (Plurality or Majority)
 - Maintain compatibility with all standard Governor features
 
+## ⚠️ Security Disclaimer
+
+**IMPORTANT**: This software is **not audited** and should **not be used in production** without proper security audits. The contracts have been tested but have not undergone formal verification or auditing by security professionals. 
+
+Using this code in production environments without thorough security reviews could lead to:
+- Loss of funds
+- Governance attacks
+- Unexpected behavior or vulnerabilities
+
+Always engage qualified security professionals to audit your code before deploying it to manage real assets.
+
 ## Architecture
 
 ```mermaid
