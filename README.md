@@ -179,13 +179,55 @@ uint256 winningOption = evaluator.evaluate(proposalId);
 
 ## Evaluation Strategies
 
-### Plurality
+This contract implements two different strategies for evaluating multiple choice proposal outcomes:
+
+### How Multiple Choice Is Implemented
+
+The system extends traditional Yes/No/Abstain governance voting with the following components:
+
+1. **Option Storage**: The `GovernorProposalMultipleChoiceOptions` contract stores up to 10 distinct text options with each proposal.
+
+2. **Vote Casting**: The `GovernorCountingMultipleChoice` contract adds a specialized `castVoteWithOption(proposalId, optionIndex)` method that lets voters choose a specific option rather than just supporting or opposing.
+
+3. **Vote Counting**: Option-specific votes are tracked separately from standard For/Against/Abstain votes, allowing for flexible evaluation methods.
+
+### Available Strategies
+
+#### Plurality
 
 The option with the highest vote count wins. In case of a tie, the option with the lowest index is chosen.
 
-### Majority
+```solidity
+// Example: Option votes [30, 45, 25]
+// Option 1 wins with 45 votes
 
-An option must receive more than 50% of the total votes cast for options to win. If no option achieves a majority, the evaluation returns `type(uint256).max`, and the proposal is effectively defeated.
+// Example: Option votes [40, 40, 20]
+// Option 0 wins with 40 votes (tiebreaker favors lower index)
+```
+
+Plurality is suitable for proposals with many similar options where a simple "first past the post" approach is acceptable.
+
+#### Majority
+
+An option must receive more than 50% of the total option votes to win. If no option achieves a majority, the evaluation returns `type(uint256).max`, and the proposal is effectively defeated.
+
+```solidity
+// Example: Option votes [30, 60, 10]
+// Total votes: 100
+// Option 1 wins with 60 votes (60% > 50%)
+
+// Example: Option votes [40, 30, 30]
+// Total votes: 100
+// No winner (no option exceeds 50%)
+```
+
+Majority is appropriate for critical decisions where consensus is important, ensuring the winning option has broad support.
+
+### Key Design Insight
+
+The proposal's actions (target contracts, function calls, etc.) remain the same regardless of which option wins. The options are purely for governance participants to express preferences, with the evaluation strategy determining how those preferences translate into a decision.
+
+This design allows for flexible governance processes while maintaining compatibility with the standard OpenZeppelin Governor framework.
 
 ## Testing
 
