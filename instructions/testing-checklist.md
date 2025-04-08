@@ -108,7 +108,7 @@
 ## Documentation Verification
 
 ### Documentation Tests
-- [ ] Verifying example code in documentation works correctly // TODO
-- [ ] Verifying interfaces are documented correctly // TODO: Verify NatSpec added
-- [ ] Verifying events are documented correctly // TODO: Verify NatSpec added
-- [ ] Verifying error messages are documented correctly // TODO: Verify NatSpec added 
+- [x] Verifying example code in documentation works correctly (Added to README)
+- [x] Verifying interfaces are documented correctly (NatSpec added)
+- [x] Verifying events are documented correctly (NatSpec added)
+- [x] Verifying error messages are documented correctly (NatSpec added) 

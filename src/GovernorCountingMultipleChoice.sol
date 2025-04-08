@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// TODO: Verify NatSpec documentation accurately reflects implementation and tested behaviors.
+
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
@@ -14,6 +16,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title GovernorCountingMultipleChoice
@@ -25,6 +28,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
  * - GovernorVotesQuorumFraction: Standard quorum calculation.
  * - GovernorTimelockControl: Integrates with TimelockController for execution.
  * - GovernorProposalMultipleChoiceOptions: Adds storage for proposal options.
+ * - Ownable: Adds ownership functionality.
  */
 contract GovernorCountingMultipleChoice is
     Context,
@@ -34,28 +38,68 @@ contract GovernorCountingMultipleChoice is
     GovernorVotes,
     GovernorVotesQuorumFraction,
     GovernorTimelockControl,
-    GovernorProposalMultipleChoiceOptions
+    GovernorProposalMultipleChoiceOptions,
+    Ownable
 {
     using SafeCast for uint256;
 
     // Mapping to store votes per option for each proposal
     mapping(uint256 => mapping(uint8 => uint256)) internal _proposalOptionVotesCount; // Store just the vote count per option
 
+    // Address of the evaluator contract
+    address public evaluator; // Public state variable for evaluator address
+
     /**
-     * @dev Constructor.
+     * @dev Emitted when the evaluator address is set or updated.
+     * @param newEvaluator Address of the new evaluator contract
+     */
+    event EvaluatorSet(address newEvaluator);
+
+    /**
+     * @dev Constructor for the GovernorCountingMultipleChoice contract.
+     * @param _token The token used for voting (ERC20Votes or ERC721Votes)
+     * @param _timelock The timelock controller for proposal execution
+     * @param _name The name of the governor instance
      */
     constructor(
         IVotes _token,
         TimelockController _timelock,
         string memory _name
-    ) Governor(_name) GovernorSettings(1, 4, 0) GovernorVotes(_token) GovernorVotesQuorumFraction(4) GovernorTimelockControl(_timelock) {}
+    ) 
+        Governor(_name) 
+        GovernorSettings(1, 4, 0) 
+        GovernorVotes(_token) 
+        GovernorVotesQuorumFraction(4) 
+        GovernorTimelockControl(_timelock) 
+        Ownable(msg.sender) // Call Ownable constructor
+    {}
+
+    /**
+     * @dev Sets or updates the address of the evaluator contract.
+     * Only callable by the owner.
+     * @param _newEvaluator The address of the new evaluator contract
+     */
+    function setEvaluator(address _newEvaluator) public onlyOwner {
+        evaluator = _newEvaluator;
+        emit EvaluatorSet(_newEvaluator);
+    }
 
     // --- Diamond Inheritance Resolution ---
 
+    /**
+     * @dev Returns the executor address used for proposal execution.
+     * Resolves the diamond inheritance between Governor and GovernorTimelockControl.
+     * @return The executor address (the timelock controller)
+     */
     function _executor() internal view virtual override(Governor, GovernorTimelockControl) returns (address) {
         return super._executor(); // Use Timelock's executor by default
     }
 
+    /**
+     * @dev Returns the proposal threshold required for creating new proposals.
+     * Resolves the diamond inheritance between Governor and GovernorSettings.
+     * @return The proposal threshold (minimum votes required to create a proposal)
+     */
     function proposalThreshold() public view virtual override(Governor, GovernorSettings) returns (uint256) {
         return super.proposalThreshold(); // Use GovernorSettings' threshold
     }
@@ -64,7 +108,12 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev See {IGovernor-propose}.
-     * Adds support for multiple choice options.
+     * Standard proposal creation without multiple choice options.
+     * @param targets The addresses of the contracts to call
+     * @param values The ETH values to send with each call
+     * @param calldatas The calldata to send with each call
+     * @param description A description of the proposal
+     * @return proposalId The ID of the newly created proposal
      */
     function propose(
         address[] memory targets,
@@ -77,6 +126,12 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev Overload for proposing with multiple choice options.
+     * @param targets The addresses of the contracts to call
+     * @param values The ETH values to send with each call
+     * @param calldatas The calldata to send with each call
+     * @param description A description of the proposal
+     * @param options The array of option descriptions for the multiple choice proposal
+     * @return proposalId The ID of the newly created proposal
      */
     function propose(
         address[] memory targets,
@@ -94,6 +149,9 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev See {IGovernor-state}.
+     * Returns the current state of a proposal.
+     * @param proposalId The ID of the proposal
+     * @return The current ProposalState
      */
     function state(uint256 proposalId) public view virtual override(Governor, GovernorTimelockControl) returns (ProposalState) {
         return super.state(proposalId);
@@ -101,6 +159,8 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev See {IGovernor-votingDelay}.
+     * Returns the delay before voting on a proposal may start.
+     * @return The voting delay in blocks
      */
     function votingDelay() public view virtual override(Governor, GovernorSettings) returns (uint256) {
         return super.votingDelay();
@@ -108,6 +168,8 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev See {IGovernor-votingPeriod}.
+     * Returns the period during which votes can be cast.
+     * @return The voting period in blocks
      */
     function votingPeriod() public view virtual override(Governor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
@@ -115,6 +177,9 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev See {IGovernor-quorum}.
+     * Returns the minimum number of votes required for a proposal to succeed.
+     * @param blockNumber The block number to get the quorum at
+     * @return The minimum number of votes required for quorum
      */
     function quorum(uint256 blockNumber) public view virtual override(Governor, GovernorVotesQuorumFraction) returns (uint256) {
         return super.quorum(blockNumber);
@@ -122,6 +187,10 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev See {IGovernor-getVotes}.
+     * Returns the voting power of an account at a specific block number.
+     * @param account The address to get voting power for
+     * @param blockNumber The block number to get the votes at
+     * @return The voting power of the account at the given block
      */
     function getVotes(address account, uint256 blockNumber) public view virtual override returns (uint256) {
         return super.getVotes(account, blockNumber);
@@ -129,28 +198,63 @@ contract GovernorCountingMultipleChoice is
 
     // --- Overridden Timelock Control Functions ---
 
+    /**
+     * @dev Returns whether a proposal needs to be queued through the timelock.
+     * @param proposalId The ID of the proposal
+     * @return True if the proposal needs queuing, false otherwise
+     */
     function proposalNeedsQueuing(uint256 proposalId) public view virtual override(Governor, GovernorTimelockControl) returns (bool) {
         return super.proposalNeedsQueuing(proposalId);
     }
 
+    /**
+     * @dev Queues a proposal's operations through the timelock controller.
+     * @param proposalId The ID of the proposal
+     * @param targets The addresses of the contracts to call
+     * @param values The ETH values to send with each call
+     * @param calldatas The calldata to send with each call
+     * @param descriptionHash The hash of the proposal description
+     * @return The timestamp at which the proposal will be ready for execution
+     */
     function _queueOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
         return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
+    /**
+     * @dev Executes a proposal's operations through the timelock controller.
+     * @param proposalId The ID of the proposal
+     * @param targets The addresses of the contracts to call
+     * @param values The ETH values to send with each call
+     * @param calldatas The calldata to send with each call
+     * @param descriptionHash The hash of the proposal description
+     */
     function _executeOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) {
         super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
+    /**
+     * @dev Cancels a proposal and its queued operations.
+     * @param targets The addresses of the contracts to call
+     * @param values The ETH values to send with each call
+     * @param calldatas The calldata to send with each call
+     * @param descriptionHash The hash of the proposal description
+     * @return The ID of the canceled proposal
+     */
     function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) returns (uint256) {
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
-    // --- Overridden Counting Functions --- (Add option counting later)
+    // --- Overridden Counting Functions ---
 
     /**
-     * @dev Override _countVote to add logic for multiple choice options.
-     * Standard votes are handled by super._countVote.
-     * MC votes also call super._countVote (to update receipts) then update option counts.
+     * @dev Counts a vote on a proposal.
+     * Overrides the standard counting method to add support for multiple choice options.
+     * @param proposalId The ID of the proposal
+     * @param account The address of the voter
+     * @param support The standard support value (0=Against, 1=For, 2=Abstain)
+     * @param weight The voting weight (typically token balance at snapshot)
+     * @param params Additional parameters, used for option index in multiple choice votes
+     * @return The weight that was counted
      */
     function _countVote(
         uint256 proposalId,
@@ -176,8 +280,13 @@ contract GovernorCountingMultipleChoice is
     }
 
     /**
-     * @dev Override _castVote to pass empty params by default for standard votes.
-     * This ensures it matches the signature required by the Governor._castVote call within.
+     * @dev Casts a vote on a proposal.
+     * Overridden to pass empty params by default for standard votes.
+     * @param proposalId The ID of the proposal
+     * @param account The address of the voter
+     * @param support The support value (0=Against, 1=For, 2=Abstain)
+     * @param reason The reason for the vote (optional)
+     * @return The weight of the cast vote
      */
     function _castVote(
         uint256 proposalId,
@@ -190,8 +299,13 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev Internal cast vote logic that includes params.
-     * Renamed from _castVote to avoid conflicting override signature with the one above.
-     * This function is called by both standard castVote and castVoteWithOption.
+     * Called by both standard castVote and castVoteWithOption.
+     * @param proposalId The ID of the proposal
+     * @param account The address of the voter
+     * @param support The support value (0=Against, 1=For, 2=Abstain)
+     * @param reason The reason for the vote (optional)
+     * @param params Additional parameters, used for option index
+     * @return The weight of the cast vote
      */
     function _internalCastVote(
         uint256 proposalId,
@@ -217,6 +331,9 @@ contract GovernorCountingMultipleChoice is
     /**
      * @dev Cast a vote for a specific option in a multiple choice proposal.
      * Encodes optionIndex into params for the internal cast vote function.
+     * @param proposalId The ID of the proposal
+     * @param optionIndex The index of the option to vote for
+     * @return balance The weight of the cast vote
      */
     function castVoteWithOption(uint256 proposalId, uint8 optionIndex) public virtual returns (uint256 balance) {
         address voter = _msgSender();
@@ -230,6 +347,9 @@ contract GovernorCountingMultipleChoice is
 
     /**
      * @dev Returns the vote counts for a specific option.
+     * @param proposalId The ID of the proposal
+     * @param optionIndex The index of the option to get votes for
+     * @return optionVotes The number of votes for the specified option
      */
     function proposalOptionVotes(uint256 proposalId, uint8 optionIndex) public view virtual returns (uint256 optionVotes) {
         (, uint8 optionCount) = proposalOptions(proposalId);
@@ -240,6 +360,8 @@ contract GovernorCountingMultipleChoice is
     /**
      * @dev Returns all vote counts for a proposal.
      * The array order is: Against, For, Abstain, Option 0, Option 1, ..., Option N-1.
+     * @param proposalId The ID of the proposal
+     * @return allVotes Array containing all vote counts
      */
     function proposalAllVotes(uint256 proposalId) public view virtual returns (uint256[] memory allVotes) {
         // Get standard votes using the public function from GovernorCountingSimple
@@ -261,8 +383,12 @@ contract GovernorCountingMultipleChoice is
     }
 
     // --- Required Supports Interface --- 
-    // (Needed because Governor is abstract)
 
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     * @param interfaceId The interface ID to check
+     * @return True if the contract supports the interface
+     */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return super.supportsInterface(interfaceId);
     }
