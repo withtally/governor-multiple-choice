@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Ethereum ##
+
+- Use Forge for testing
+- This is a foundry project
+- Refer to the Forge documenation always

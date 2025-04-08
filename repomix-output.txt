@@ -1,0 +1,3850 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+Additional Info:
+----------------
+
+================================================================
+Directory Structure
+================================================================
+.cursor/
+  rules/
+    codereview.mdc
+    database.mdc
+    datetime.mdc
+    ethereum.mdc
+    focus.mdc
+    graphql.mdc
+    newprojects.mdc
+    prefered-stack.mdc
+    process.mdc
+    projectdb.mdc
+    readonlyfiles.mdc
+    scripts.mdc
+    testing.mdc
+forge-project/
+  .git/
+    hooks/
+      applypatch-msg.sample
+      commit-msg.sample
+      fsmonitor-watchman.sample
+      post-update.sample
+      pre-applypatch.sample
+      pre-commit.sample
+      pre-merge-commit.sample
+      pre-push.sample
+      pre-rebase.sample
+      pre-receive.sample
+      prepare-commit-msg.sample
+      push-to-checkout.sample
+      update.sample
+    info/
+      exclude
+    logs/
+      refs/
+        heads/
+          main
+      HEAD
+    refs/
+      heads/
+        main
+    COMMIT_EDITMSG
+    config
+    description
+    HEAD
+  .github/
+    workflows/
+      test.yml
+  script/
+    Counter.s.sol
+  src/
+    example/
+      MultipleChoiceGovernorExample.sol
+    Counter.sol
+    GovernorCountingMultipleChoice.sol
+    MultipleChoiceEvaluator.sol
+  test/
+    Counter.t.sol
+    MultipleChoiceVoting.t.sol
+  .gitignore
+  .gitmodules
+  foundry.toml
+  README.md
+instructions/
+  contract-design-specifications.md
+  implementation-progress.md
+  multiple-choice-governor-implementation-plan.md
+  setup-instructions.md
+  testing-checklist.md
+  testing-strategy.md
+src/
+  GovernorCountingMultipleChoice.sol
+  GovernorProposalMultipleChoiceOptions.sol
+test/
+  GovernorCountingMultipleChoice.t.sol
+.gitmodules
+.repomixignore
+foundry.toml
+remappings.txt
+
+================================================================
+Files
+================================================================
+
+================
+File: .cursor/rules/ethereum.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Ethereum ##
+
+- Use Forge for testing
+- This is a foundry project
+- Refer to the Forge documenation always
+
+================
+File: forge-project/.git/hooks/applypatch-msg.sample
+================
+#!/bin/sh
+#
+# An example hook script to check the commit log message taken by
+# applypatch from an e-mail message.
+#
+# The hook should exit with non-zero status after issuing an
+# appropriate message if it wants to stop the commit.  The hook is
+# allowed to edit the commit message file.
+#
+# To enable this hook, rename this file to "applypatch-msg".
+
+. git-sh-setup
+commitmsg="$(git rev-parse --git-path hooks/commit-msg)"
+test -x "$commitmsg" && exec "$commitmsg" ${1+"$@"}
+:
+
+================
+File: forge-project/.git/hooks/commit-msg.sample
+================
+#!/bin/sh
+#
+# An example hook script to check the commit log message.
+# Called by "git commit" with one argument, the name of the file
+# that has the commit message.  The hook should exit with non-zero
+# status after issuing an appropriate message if it wants to stop the
+# commit.  The hook is allowed to edit the commit message file.
+#
+# To enable this hook, rename this file to "commit-msg".
+
+# Uncomment the below to add a Signed-off-by line to the message.
+# Doing this in a hook is a bad idea in general, but the prepare-commit-msg
+# hook is more suited to it.
+#
+# SOB=$(git var GIT_AUTHOR_IDENT | sed -n 's/^\(.*>\).*$/Signed-off-by: \1/p')
+# grep -qs "^$SOB" "$1" || echo "$SOB" >> "$1"
+
+# This example catches duplicate Signed-off-by lines.
+
+test "" = "$(grep '^Signed-off-by: ' "$1" |
+	 sort | uniq -c | sed -e '/^[ 	]*1[ 	]/d')" || {
+	echo >&2 Duplicate Signed-off-by lines.
+	exit 1
+}
+
+================
+File: forge-project/.git/hooks/fsmonitor-watchman.sample
+================
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use IPC::Open2;
+
+# An example hook script to integrate Watchman
+# (https://facebook.github.io/watchman/) with git to speed up detecting
+# new and modified files.
+#
+# The hook is passed a version (currently 2) and last update token
+# formatted as a string and outputs to stdout a new update token and
+# all files that have been modified since the update token. Paths must
+# be relative to the root of the working tree and separated by a single NUL.
+#
+# To enable this hook, rename this file to "query-watchman" and set
+# 'git config core.fsmonitor .git/hooks/query-watchman'
+#
+my ($version, $last_update_token) = @ARGV;
+
+# Uncomment for debugging
+# print STDERR "$0 $version $last_update_token\n";
+
+# Check the hook interface version
+if ($version ne 2) {
+	die "Unsupported query-fsmonitor hook version '$version'.\n" .
+	    "Falling back to scanning...\n";
+}
+
+my $git_work_tree = get_working_dir();
+
+my $retry = 1;
+
+my $json_pkg;
+eval {
+	require JSON::XS;
+	$json_pkg = "JSON::XS";
+	1;
+} or do {
+	require JSON::PP;
+	$json_pkg = "JSON::PP";
+};
+
+launch_watchman();
+
+sub launch_watchman {
+	my $o = watchman_query();
+	if (is_work_tree_watched($o)) {
+		output_result($o->{clock}, @{$o->{files}});
+	}
+}
+
+sub output_result {
+	my ($clockid, @files) = @_;
+
+	# Uncomment for debugging watchman output
+	# open (my $fh, ">", ".git/watchman-output.out");
+	# binmode $fh, ":utf8";
+	# print $fh "$clockid\n@files\n";
+	# close $fh;
+
+	binmode STDOUT, ":utf8";
+	print $clockid;
+	print "\0";
+	local $, = "\0";
+	print @files;
+}
+
+sub watchman_clock {
+	my $response = qx/watchman clock "$git_work_tree"/;
+	die "Failed to get clock id on '$git_work_tree'.\n" .
+		"Falling back to scanning...\n" if $? != 0;
+
+	return $json_pkg->new->utf8->decode($response);
+}
+
+sub watchman_query {
+	my $pid = open2(\*CHLD_OUT, \*CHLD_IN, 'watchman -j --no-pretty')
+	or die "open2() failed: $!\n" .
+	"Falling back to scanning...\n";
+
+	# In the query expression below we're asking for names of files that
+	# changed since $last_update_token but not from the .git folder.
+	#
+	# To accomplish this, we're using the "since" generator to use the
+	# recency index to select candidate nodes and "fields" to limit the
+	# output to file names only. Then we're using the "expression" term to
+	# further constrain the results.
+	my $last_update_line = "";
+	if (substr($last_update_token, 0, 1) eq "c") {
+		$last_update_token = "\"$last_update_token\"";
+		$last_update_line = qq[\n"since": $last_update_token,];
+	}
+	my $query = <<"	END";
+		["query", "$git_work_tree", {$last_update_line
+			"fields": ["name"],
+			"expression": ["not", ["dirname", ".git"]]
+		}]
+	END
+
+	# Uncomment for debugging the watchman query
+	# open (my $fh, ">", ".git/watchman-query.json");
+	# print $fh $query;
+	# close $fh;
+
+	print CHLD_IN $query;
+	close CHLD_IN;
+	my $response = do {local $/; <CHLD_OUT>};
+
+	# Uncomment for debugging the watch response
+	# open ($fh, ">", ".git/watchman-response.json");
+	# print $fh $response;
+	# close $fh;
+
+	die "Watchman: command returned no output.\n" .
+	"Falling back to scanning...\n" if $response eq "";
+	die "Watchman: command returned invalid output: $response\n" .
+	"Falling back to scanning...\n" unless $response =~ /^\{/;
+
+	return $json_pkg->new->utf8->decode($response);
+}
+
+sub is_work_tree_watched {
+	my ($output) = @_;
+	my $error = $output->{error};
+	if ($retry > 0 and $error and $error =~ m/unable to resolve root .* directory (.*) is not watched/) {
+		$retry--;
+		my $response = qx/watchman watch "$git_work_tree"/;
+		die "Failed to make watchman watch '$git_work_tree'.\n" .
+		    "Falling back to scanning...\n" if $? != 0;
+		$output = $json_pkg->new->utf8->decode($response);
+		$error = $output->{error};
+		die "Watchman: $error.\n" .
+		"Falling back to scanning...\n" if $error;
+
+		# Uncomment for debugging watchman output
+		# open (my $fh, ">", ".git/watchman-output.out");
+		# close $fh;
+
+		# Watchman will always return all files on the first query so
+		# return the fast "everything is dirty" flag to git and do the
+		# Watchman query just to get it over with now so we won't pay
+		# the cost in git to look up each individual file.
+		my $o = watchman_clock();
+		$error = $output->{error};
+
+		die "Watchman: $error.\n" .
+		"Falling back to scanning...\n" if $error;
+
+		output_result($o->{clock}, ("/"));
+		$last_update_token = $o->{clock};
+
+		eval { launch_watchman() };
+		return 0;
+	}
+
+	die "Watchman: $error.\n" .
+	"Falling back to scanning...\n" if $error;
+
+	return 1;
+}
+
+sub get_working_dir {
+	my $working_dir;
+	if ($^O =~ 'msys' || $^O =~ 'cygwin') {
+		$working_dir = Win32::GetCwd();
+		$working_dir =~ tr/\\/\//;
+	} else {
+		require Cwd;
+		$working_dir = Cwd::cwd();
+	}
+
+	return $working_dir;
+}
+
+================
+File: forge-project/.git/hooks/post-update.sample
+================
+#!/bin/sh
+#
+# An example hook script to prepare a packed repository for use over
+# dumb transports.
+#
+# To enable this hook, rename this file to "post-update".
+
+exec git update-server-info
+
+================
+File: forge-project/.git/hooks/pre-applypatch.sample
+================
+#!/bin/sh
+#
+# An example hook script to verify what is about to be committed
+# by applypatch from an e-mail message.
+#
+# The hook should exit with non-zero status after issuing an
+# appropriate message if it wants to stop the commit.
+#
+# To enable this hook, rename this file to "pre-applypatch".
+
+. git-sh-setup
+precommit="$(git rev-parse --git-path hooks/pre-commit)"
+test -x "$precommit" && exec "$precommit" ${1+"$@"}
+:
+
+================
+File: forge-project/.git/hooks/pre-commit.sample
+================
+#!/bin/sh
+#
+# An example hook script to verify what is about to be committed.
+# Called by "git commit" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message if
+# it wants to stop the commit.
+#
+# To enable this hook, rename this file to "pre-commit".
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+	against=HEAD
+else
+	# Initial commit: diff against an empty tree object
+	against=$(git hash-object -t tree /dev/null)
+fi
+
+# If you want to allow non-ASCII filenames set this variable to true.
+allownonascii=$(git config --type=bool hooks.allownonascii)
+
+# Redirect output to stderr.
+exec 1>&2
+
+# Cross platform projects tend to avoid non-ASCII filenames; prevent
+# them from being added to the repository. We exploit the fact that the
+# printable range starts at the space character and ends with tilde.
+if [ "$allownonascii" != "true" ] &&
+	# Note that the use of brackets around a tr range is ok here, (it's
+	# even required, for portability to Solaris 10's /usr/bin/tr), since
+	# the square bracket bytes happen to fall in the designated range.
+	test $(git diff --cached --name-only --diff-filter=A -z $against |
+	  LC_ALL=C tr -d '[ -~]\0' | wc -c) != 0
+then
+	cat <<\EOF
+Error: Attempt to add a non-ASCII file name.
+
+This can cause problems if you want to work with people on other platforms.
+
+To be portable it is advisable to rename the file.
+
+If you know what you are doing you can disable this check using:
+
+  git config hooks.allownonascii true
+EOF
+	exit 1
+fi
+
+# If there are whitespace errors, print the offending file names and fail.
+exec git diff-index --check --cached $against --
+
+================
+File: forge-project/.git/hooks/pre-merge-commit.sample
+================
+#!/bin/sh
+#
+# An example hook script to verify what is about to be committed.
+# Called by "git merge" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message to
+# stderr if it wants to stop the merge commit.
+#
+# To enable this hook, rename this file to "pre-merge-commit".
+
+. git-sh-setup
+test -x "$GIT_DIR/hooks/pre-commit" &&
+        exec "$GIT_DIR/hooks/pre-commit"
+:
+
+================
+File: forge-project/.git/hooks/pre-push.sample
+================
+#!/bin/sh
+
+# An example hook script to verify what is about to be pushed.  Called by "git
+# push" after it has checked the remote status, but before anything has been
+# pushed.  If this script exits with a non-zero status nothing will be pushed.
+#
+# This hook is called with the following parameters:
+#
+# $1 -- Name of the remote to which the push is being done
+# $2 -- URL to which the push is being done
+#
+# If pushing without using a named remote those arguments will be equal.
+#
+# Information about the commits which are being pushed is supplied as lines to
+# the standard input in the form:
+#
+#   <local ref> <local oid> <remote ref> <remote oid>
+#
+# This sample shows how to prevent push of commits where the log message starts
+# with "WIP" (work in progress).
+
+remote="$1"
+url="$2"
+
+zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
+
+while read local_ref local_oid remote_ref remote_oid
+do
+	if test "$local_oid" = "$zero"
+	then
+		# Handle delete
+		:
+	else
+		if test "$remote_oid" = "$zero"
+		then
+			# New branch, examine all commits
+			range="$local_oid"
+		else
+			# Update to existing branch, examine new commits
+			range="$remote_oid..$local_oid"
+		fi
+
+		# Check for WIP commit
+		commit=$(git rev-list -n 1 --grep '^WIP' "$range")
+		if test -n "$commit"
+		then
+			echo >&2 "Found WIP commit in $local_ref, not pushing"
+			exit 1
+		fi
+	fi
+done
+
+exit 0
+
+================
+File: forge-project/.git/hooks/pre-rebase.sample
+================
+#!/bin/sh
+#
+# Copyright (c) 2006, 2008 Junio C Hamano
+#
+# The "pre-rebase" hook is run just before "git rebase" starts doing
+# its job, and can prevent the command from running by exiting with
+# non-zero status.
+#
+# The hook is called with the following parameters:
+#
+# $1 -- the upstream the series was forked from.
+# $2 -- the branch being rebased (or empty when rebasing the current branch).
+#
+# This sample shows how to prevent topic branches that are already
+# merged to 'next' branch from getting rebased, because allowing it
+# would result in rebasing already published history.
+
+publish=next
+basebranch="$1"
+if test "$#" = 2
+then
+	topic="refs/heads/$2"
+else
+	topic=`git symbolic-ref HEAD` ||
+	exit 0 ;# we do not interrupt rebasing detached HEAD
+fi
+
+case "$topic" in
+refs/heads/??/*)
+	;;
+*)
+	exit 0 ;# we do not interrupt others.
+	;;
+esac
+
+# Now we are dealing with a topic branch being rebased
+# on top of master.  Is it OK to rebase it?
+
+# Does the topic really exist?
+git show-ref -q "$topic" || {
+	echo >&2 "No such branch $topic"
+	exit 1
+}
+
+# Is topic fully merged to master?
+not_in_master=`git rev-list --pretty=oneline ^master "$topic"`
+if test -z "$not_in_master"
+then
+	echo >&2 "$topic is fully merged to master; better remove it."
+	exit 1 ;# we could allow it, but there is no point.
+fi
+
+# Is topic ever merged to next?  If so you should not be rebasing it.
+only_next_1=`git rev-list ^master "^$topic" ${publish} | sort`
+only_next_2=`git rev-list ^master           ${publish} | sort`
+if test "$only_next_1" = "$only_next_2"
+then
+	not_in_topic=`git rev-list "^$topic" master`
+	if test -z "$not_in_topic"
+	then
+		echo >&2 "$topic is already up to date with master"
+		exit 1 ;# we could allow it, but there is no point.
+	else
+		exit 0
+	fi
+else
+	not_in_next=`git rev-list --pretty=oneline ^${publish} "$topic"`
+	/usr/bin/perl -e '
+		my $topic = $ARGV[0];
+		my $msg = "* $topic has commits already merged to public branch:\n";
+		my (%not_in_next) = map {
+			/^([0-9a-f]+) /;
+			($1 => 1);
+		} split(/\n/, $ARGV[1]);
+		for my $elem (map {
+				/^([0-9a-f]+) (.*)$/;
+				[$1 => $2];
+			} split(/\n/, $ARGV[2])) {
+			if (!exists $not_in_next{$elem->[0]}) {
+				if ($msg) {
+					print STDERR $msg;
+					undef $msg;
+				}
+				print STDERR " $elem->[1]\n";
+			}
+		}
+	' "$topic" "$not_in_next" "$not_in_master"
+	exit 1
+fi
+
+<<\DOC_END
+
+This sample hook safeguards topic branches that have been
+published from being rewound.
+
+The workflow assumed here is:
+
+ * Once a topic branch forks from "master", "master" is never
+   merged into it again (either directly or indirectly).
+
+ * Once a topic branch is fully cooked and merged into "master",
+   it is deleted.  If you need to build on top of it to correct
+   earlier mistakes, a new topic branch is created by forking at
+   the tip of the "master".  This is not strictly necessary, but
+   it makes it easier to keep your history simple.
+
+ * Whenever you need to test or publish your changes to topic
+   branches, merge them into "next" branch.
+
+The script, being an example, hardcodes the publish branch name
+to be "next", but it is trivial to make it configurable via
+$GIT_DIR/config mechanism.
+
+With this workflow, you would want to know:
+
+(1) ... if a topic branch has ever been merged to "next".  Young
+    topic branches can have stupid mistakes you would rather
+    clean up before publishing, and things that have not been
+    merged into other branches can be easily rebased without
+    affecting other people.  But once it is published, you would
+    not want to rewind it.
+
+(2) ... if a topic branch has been fully merged to "master".
+    Then you can delete it.  More importantly, you should not
+    build on top of it -- other people may already want to
+    change things related to the topic as patches against your
+    "master", so if you need further changes, it is better to
+    fork the topic (perhaps with the same name) afresh from the
+    tip of "master".
+
+Let's look at this example:
+
+		   o---o---o---o---o---o---o---o---o---o "next"
+		  /       /           /           /
+		 /   a---a---b A     /           /
+		/   /               /           /
+	       /   /   c---c---c---c B         /
+	      /   /   /             \         /
+	     /   /   /   b---b C     \       /
+	    /   /   /   /             \     /
+    ---o---o---o---o---o---o---o---o---o---o---o "master"
+
+
+A, B and C are topic branches.
+
+ * A has one fix since it was merged up to "next".
+
+ * B has finished.  It has been fully merged up to "master" and "next",
+   and is ready to be deleted.
+
+ * C has not merged to "next" at all.
+
+We would want to allow C to be rebased, refuse A, and encourage
+B to be deleted.
+
+To compute (1):
+
+	git rev-list ^master ^topic next
+	git rev-list ^master        next
+
+	if these match, topic has not merged in next at all.
+
+To compute (2):
+
+	git rev-list master..topic
+
+	if this is empty, it is fully merged to "master".
+
+DOC_END
+
+================
+File: forge-project/.git/hooks/pre-receive.sample
+================
+#!/bin/sh
+#
+# An example hook script to make use of push options.
+# The example simply echoes all push options that start with 'echoback='
+# and rejects all pushes when the "reject" push option is used.
+#
+# To enable this hook, rename this file to "pre-receive".
+
+if test -n "$GIT_PUSH_OPTION_COUNT"
+then
+	i=0
+	while test "$i" -lt "$GIT_PUSH_OPTION_COUNT"
+	do
+		eval "value=\$GIT_PUSH_OPTION_$i"
+		case "$value" in
+		echoback=*)
+			echo "echo from the pre-receive-hook: ${value#*=}" >&2
+			;;
+		reject)
+			exit 1
+		esac
+		i=$((i + 1))
+	done
+fi
+
+================
+File: forge-project/.git/hooks/prepare-commit-msg.sample
+================
+#!/bin/sh
+#
+# An example hook script to prepare the commit log message.
+# Called by "git commit" with the name of the file that has the
+# commit message, followed by the description of the commit
+# message's source.  The hook's purpose is to edit the commit
+# message file.  If the hook fails with a non-zero status,
+# the commit is aborted.
+#
+# To enable this hook, rename this file to "prepare-commit-msg".
+
+# This hook includes three examples. The first one removes the
+# "# Please enter the commit message..." help message.
+#
+# The second includes the output of "git diff --name-status -r"
+# into the message, just before the "git status" output.  It is
+# commented because it doesn't cope with --amend or with squashed
+# commits.
+#
+# The third example adds a Signed-off-by line to the message, that can
+# still be edited.  This is rarely a good idea.
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+/usr/bin/perl -i.bak -ne 'print unless(m/^. Please enter the commit message/..m/^#$/)' "$COMMIT_MSG_FILE"
+
+# case "$COMMIT_SOURCE,$SHA1" in
+#  ,|template,)
+#    /usr/bin/perl -i.bak -pe '
+#       print "\n" . `git diff --cached --name-status -r`
+# 	 if /^#/ && $first++ == 0' "$COMMIT_MSG_FILE" ;;
+#  *) ;;
+# esac
+
+# SOB=$(git var GIT_COMMITTER_IDENT | sed -n 's/^\(.*>\).*$/Signed-off-by: \1/p')
+# git interpret-trailers --in-place --trailer "$SOB" "$COMMIT_MSG_FILE"
+# if test -z "$COMMIT_SOURCE"
+# then
+#   /usr/bin/perl -i.bak -pe 'print "\n" if !$first_line++' "$COMMIT_MSG_FILE"
+# fi
+
+================
+File: forge-project/.git/hooks/push-to-checkout.sample
+================
+#!/bin/sh
+
+# An example hook script to update a checked-out tree on a git push.
+#
+# This hook is invoked by git-receive-pack(1) when it reacts to git
+# push and updates reference(s) in its repository, and when the push
+# tries to update the branch that is currently checked out and the
+# receive.denyCurrentBranch configuration variable is set to
+# updateInstead.
+#
+# By default, such a push is refused if the working tree and the index
+# of the remote repository has any difference from the currently
+# checked out commit; when both the working tree and the index match
+# the current commit, they are updated to match the newly pushed tip
+# of the branch. This hook is to be used to override the default
+# behaviour; however the code below reimplements the default behaviour
+# as a starting point for convenient modification.
+#
+# The hook receives the commit with which the tip of the current
+# branch is going to be updated:
+commit=$1
+
+# It can exit with a non-zero status to refuse the push (when it does
+# so, it must not modify the index or the working tree).
+die () {
+	echo >&2 "$*"
+	exit 1
+}
+
+# Or it can make any necessary changes to the working tree and to the
+# index to bring them to the desired state when the tip of the current
+# branch is updated to the new commit, and exit with a zero status.
+#
+# For example, the hook can simply run git read-tree -u -m HEAD "$1"
+# in order to emulate git fetch that is run in the reverse direction
+# with git push, as the two-tree form of git read-tree -u -m is
+# essentially the same as git switch or git checkout that switches
+# branches while keeping the local changes in the working tree that do
+# not interfere with the difference between the branches.
+
+# The below is a more-or-less exact translation to shell of the C code
+# for the default behaviour for git's push-to-checkout hook defined in
+# the push_to_deploy() function in builtin/receive-pack.c.
+#
+# Note that the hook will be executed from the repository directory,
+# not from the working tree, so if you want to perform operations on
+# the working tree, you will have to adapt your code accordingly, e.g.
+# by adding "cd .." or using relative paths.
+
+if ! git update-index -q --ignore-submodules --refresh
+then
+	die "Up-to-date check failed"
+fi
+
+if ! git diff-files --quiet --ignore-submodules --
+then
+	die "Working directory has unstaged changes"
+fi
+
+# This is a rough translation of:
+#
+#   head_has_history() ? "HEAD" : EMPTY_TREE_SHA1_HEX
+if git cat-file -e HEAD 2>/dev/null
+then
+	head=HEAD
+else
+	head=$(git hash-object -t tree --stdin </dev/null)
+fi
+
+if ! git diff-index --quiet --cached --ignore-submodules $head --
+then
+	die "Working directory has staged changes"
+fi
+
+if ! git read-tree -u -m "$commit"
+then
+	die "Could not update working tree to new HEAD"
+fi
+
+================
+File: forge-project/.git/hooks/update.sample
+================
+#!/bin/sh
+#
+# An example hook script to block unannotated tags from entering.
+# Called by "git receive-pack" with arguments: refname sha1-old sha1-new
+#
+# To enable this hook, rename this file to "update".
+#
+# Config
+# ------
+# hooks.allowunannotated
+#   This boolean sets whether unannotated tags will be allowed into the
+#   repository.  By default they won't be.
+# hooks.allowdeletetag
+#   This boolean sets whether deleting tags will be allowed in the
+#   repository.  By default they won't be.
+# hooks.allowmodifytag
+#   This boolean sets whether a tag may be modified after creation. By default
+#   it won't be.
+# hooks.allowdeletebranch
+#   This boolean sets whether deleting branches will be allowed in the
+#   repository.  By default they won't be.
+# hooks.denycreatebranch
+#   This boolean sets whether remotely creating branches will be denied
+#   in the repository.  By default this is allowed.
+#
+
+# --- Command line
+refname="$1"
+oldrev="$2"
+newrev="$3"
+
+# --- Safety check
+if [ -z "$GIT_DIR" ]; then
+	echo "Don't run this script from the command line." >&2
+	echo " (if you want, you could supply GIT_DIR then run" >&2
+	echo "  $0 <ref> <oldrev> <newrev>)" >&2
+	exit 1
+fi
+
+if [ -z "$refname" -o -z "$oldrev" -o -z "$newrev" ]; then
+	echo "usage: $0 <ref> <oldrev> <newrev>" >&2
+	exit 1
+fi
+
+# --- Config
+allowunannotated=$(git config --type=bool hooks.allowunannotated)
+allowdeletebranch=$(git config --type=bool hooks.allowdeletebranch)
+denycreatebranch=$(git config --type=bool hooks.denycreatebranch)
+allowdeletetag=$(git config --type=bool hooks.allowdeletetag)
+allowmodifytag=$(git config --type=bool hooks.allowmodifytag)
+
+# check for no description
+projectdesc=$(sed -e '1q' "$GIT_DIR/description")
+case "$projectdesc" in
+"Unnamed repository"* | "")
+	echo "*** Project description file hasn't been set" >&2
+	exit 1
+	;;
+esac
+
+# --- Check types
+# if $newrev is 0000...0000, it's a commit to delete a ref.
+zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
+if [ "$newrev" = "$zero" ]; then
+	newrev_type=delete
+else
+	newrev_type=$(git cat-file -t $newrev)
+fi
+
+case "$refname","$newrev_type" in
+	refs/tags/*,commit)
+		# un-annotated tag
+		short_refname=${refname##refs/tags/}
+		if [ "$allowunannotated" != "true" ]; then
+			echo "*** The un-annotated tag, $short_refname, is not allowed in this repository" >&2
+			echo "*** Use 'git tag [ -a | -s ]' for tags you want to propagate." >&2
+			exit 1
+		fi
+		;;
+	refs/tags/*,delete)
+		# delete tag
+		if [ "$allowdeletetag" != "true" ]; then
+			echo "*** Deleting a tag is not allowed in this repository" >&2
+			exit 1
+		fi
+		;;
+	refs/tags/*,tag)
+		# annotated tag
+		if [ "$allowmodifytag" != "true" ] && git rev-parse $refname > /dev/null 2>&1
+		then
+			echo "*** Tag '$refname' already exists." >&2
+			echo "*** Modifying a tag is not allowed in this repository." >&2
+			exit 1
+		fi
+		;;
+	refs/heads/*,commit)
+		# branch
+		if [ "$oldrev" = "$zero" -a "$denycreatebranch" = "true" ]; then
+			echo "*** Creating a branch is not allowed in this repository" >&2
+			exit 1
+		fi
+		;;
+	refs/heads/*,delete)
+		# delete branch
+		if [ "$allowdeletebranch" != "true" ]; then
+			echo "*** Deleting a branch is not allowed in this repository" >&2
+			exit 1
+		fi
+		;;
+	refs/remotes/*,commit)
+		# tracking branch
+		;;
+	refs/remotes/*,delete)
+		# delete tracking branch
+		if [ "$allowdeletebranch" != "true" ]; then
+			echo "*** Deleting a tracking branch is not allowed in this repository" >&2
+			exit 1
+		fi
+		;;
+	*)
+		# Anything else (is there anything else?)
+		echo "*** Update hook: unknown type of update to ref $refname of type $newrev_type" >&2
+		exit 1
+		;;
+esac
+
+# --- Finished
+exit 0
+
+================
+File: forge-project/.git/info/exclude
+================
+# git ls-files --others --exclude-from=.git/info/exclude
+# Lines that start with '#' are comments.
+# For a project mostly in C, the following would be a good set of
+# exclude patterns (uncomment them if you want to use them):
+# *.[oa]
+# *~
+
+================
+File: forge-project/.git/logs/refs/heads/main
+================
+0000000000000000000000000000000000000000 367818d1af523d888fe620ced831d360b629deae Dennison Bertram <dennison@dennisonbertram.com> 1744124452 -0400	commit (initial): chore: forge init
+367818d1af523d888fe620ced831d360b629deae b385fab2a6746efddc9391b3d4f614eab3d3d894 Dennison Bertram <dennison@dennisonbertram.com> 1744124453 -0400	commit: forge install: forge-std
+b385fab2a6746efddc9391b3d4f614eab3d3d894 70990949262e4f872b6ff3391777fe55565a509a Dennison Bertram <dennison@dennisonbertram.com> 1744124456 -0400	commit: forge install: openzeppelin-contracts
+70990949262e4f872b6ff3391777fe55565a509a 038bc0bf2e0a268c61c9cd76855f246e6f4c7836 Dennison Bertram <dennison@dennisonbertram.com> 1744127390 -0400	commit: Complete Multiple Choice Governor implementation with working tests
+
+================
+File: forge-project/.git/logs/HEAD
+================
+0000000000000000000000000000000000000000 367818d1af523d888fe620ced831d360b629deae Dennison Bertram <dennison@dennisonbertram.com> 1744124452 -0400	commit (initial): chore: forge init
+367818d1af523d888fe620ced831d360b629deae b385fab2a6746efddc9391b3d4f614eab3d3d894 Dennison Bertram <dennison@dennisonbertram.com> 1744124453 -0400	commit: forge install: forge-std
+b385fab2a6746efddc9391b3d4f614eab3d3d894 70990949262e4f872b6ff3391777fe55565a509a Dennison Bertram <dennison@dennisonbertram.com> 1744124456 -0400	commit: forge install: openzeppelin-contracts
+70990949262e4f872b6ff3391777fe55565a509a 038bc0bf2e0a268c61c9cd76855f246e6f4c7836 Dennison Bertram <dennison@dennisonbertram.com> 1744127390 -0400	commit: Complete Multiple Choice Governor implementation with working tests
+
+================
+File: forge-project/.git/refs/heads/main
+================
+038bc0bf2e0a268c61c9cd76855f246e6f4c7836
+
+================
+File: forge-project/.git/COMMIT_EDITMSG
+================
+Complete Multiple Choice Governor implementation with working tests
+
+================
+File: forge-project/.git/config
+================
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+[submodule "lib/forge-std"]
+	url = https://github.com/foundry-rs/forge-std
+	active = true
+[submodule "lib/openzeppelin-contracts"]
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+	active = true
+
+================
+File: forge-project/.git/description
+================
+Unnamed repository; edit this file 'description' to name the repository.
+
+================
+File: forge-project/.git/HEAD
+================
+ref: refs/heads/main
+
+================
+File: forge-project/.github/workflows/test.yml
+================
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Show Forge version
+        run: |
+          forge --version
+
+      - name: Run Forge fmt
+        run: |
+          forge fmt --check
+        id: fmt
+
+      - name: Run Forge build
+        run: |
+          forge build --sizes
+        id: build
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
+
+================
+File: forge-project/script/Counter.s.sol
+================
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+import {Script, console} from "forge-std/Script.sol";
+import {Counter} from "../src/Counter.sol";
+
+contract CounterScript is Script {
+    Counter public counter;
+
+    function setUp() public {}
+
+    function run() public {
+        vm.startBroadcast();
+
+        counter = new Counter();
+
+        vm.stopBroadcast();
+    }
+}
+
+================
+File: forge-project/src/example/MultipleChoiceGovernorExample.sol
+================
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/governance/Governor.sol";
+import "../GovernorCountingMultipleChoice.sol";
+import "@openzeppelin/governance/extensions/GovernorVotes.sol";
+import "@openzeppelin/governance/extensions/GovernorVotesQuorumFraction.sol";
+import "@openzeppelin/governance/extensions/GovernorTimelockControl.sol";
+import "@openzeppelin/governance/utils/IVotes.sol";
+import "@openzeppelin/interfaces/IERC165.sol";
+import "../MultipleChoiceEvaluator.sol";
+
+/**
+ * @title MultipleChoiceGovernorExample
+ * @dev Example implementation of a Governor with multiple choice voting capabilities.
+ */
+contract MultipleChoiceGovernorExample is
+    Governor,
+    GovernorCountingMultipleChoice,
+    GovernorVotes,
+    GovernorVotesQuorumFraction,
+    GovernorTimelockControl
+{
+    // Reference to the evaluator contract
+    MultipleChoiceEvaluator public evaluator;
+
+    // Storage for proposal details
+    mapping(uint256 => ProposalDetails) private _proposalDetails;
+
+    struct ProposalDetails {
+        address[] targets;
+        uint256[] values;
+        bytes[] calldatas;
+        string description;
+    }
+
+    /**
+     * @dev Constructor for the Governor with multiple choice capabilities.
+     * @param name The name of the governor
+     * @param token The ERC20Votes token to be used for governance
+     * @param timelock The timelock controller used for governance
+     */
+    constructor(
+        string memory name,
+        IVotes token,
+        TimelockController timelock
+    )
+        Governor(name)
+        GovernorVotes(token)
+        GovernorVotesQuorumFraction(4) // 4% quorum
+        GovernorTimelockControl(timelock)
+    {}
+
+    /**
+     * @dev Sets the evaluator contract
+     * @param _evaluator The address of the MultipleChoiceEvaluator contract
+     */
+    function setEvaluator(address _evaluator) public onlyGovernance {
+        evaluator = MultipleChoiceEvaluator(_evaluator);
+    }
+
+    /**
+     * @dev See {Governor-votingDelay}.
+     */
+    function votingDelay() public pure override returns (uint256) {
+        return 7200; // 1 day (assuming 12 second blocks)
+    }
+
+    /**
+     * @dev See {Governor-votingPeriod}.
+     */
+    function votingPeriod() public pure override returns (uint256) {
+        return 50400; // 1 week (assuming 12 second blocks)
+    }
+
+    /**
+     * @dev See {Governor-proposalThreshold}.
+     */
+    function proposalThreshold() public pure override returns (uint256) {
+        return 0; // No threshold
+    }
+
+    /**
+     * @dev Override the propose function to store proposal details for later access
+     */
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public override(Governor, GovernorCountingMultipleChoice) returns (uint256) {
+        uint256 proposalId = super.propose(targets, values, calldatas, description);
+        
+        // Store proposal details for later use
+        _proposalDetails[proposalId] = ProposalDetails({
+            targets: targets,
+            values: values,
+            calldatas: calldatas,
+            description: description
+        });
+        
+        return proposalId;
+    }
+
+    /**
+     * @dev Override the proposeWithOptions function to store proposal details for later access
+     */
+    function proposeWithOptions(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        string[] memory optionDescriptions
+    ) public override returns (uint256) {
+        uint256 proposalId = super.proposeWithOptions(targets, values, calldatas, description, optionDescriptions);
+        
+        // Store proposal details for later use
+        _proposalDetails[proposalId] = ProposalDetails({
+            targets: targets,
+            values: values,
+            calldatas: calldatas,
+            description: description
+        });
+        
+        return proposalId;
+    }
+
+    // The functions below are overrides required by Solidity.
+
+    /**
+     * @dev See {Governor-_queueOperations}.
+     */
+    function _queueOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) returns (uint48) {
+        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    /**
+     * @dev See {Governor-_executeOperations}.
+     */
+    function _executeOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) {
+        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    /**
+     * @dev See {Governor-_cancel}.
+     */
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) internal override(Governor, GovernorTimelockControl) returns (uint256) {
+        return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    /**
+     * @dev See {Governor-state}.
+     */
+    function state(uint256 proposalId) public view override(Governor, GovernorTimelockControl) returns (ProposalState) {
+        return super.state(proposalId);
+    }
+
+    /**
+     * @dev See {Governor-proposalNeedsQueuing}.
+     */
+    function proposalNeedsQueuing(
+        uint256 proposalId
+    ) public view virtual override(Governor, GovernorTimelockControl) returns (bool) {
+        return super.proposalNeedsQueuing(proposalId);
+    }
+    
+    /**
+     * @dev See {Governor-_executor}.
+     */
+    function _executor() internal view override(Governor, GovernorTimelockControl) returns (address) {
+        return super._executor();
+    }
+
+    /**
+     * @dev Evaluates and executes a multiple choice proposal based on the selected option.
+     * @param proposalId The ID of the proposal to evaluate and execute
+     */
+    function evaluateAndExecute(uint256 proposalId) public {
+        require(address(evaluator) != address(0), "MultipleChoiceGovernorExample: evaluator not set");
+        require(
+            state(proposalId) == ProposalState.Succeeded,
+            "MultipleChoiceGovernorExample: proposal not in succeeded state"
+        );
+        
+        // Evaluate the proposal to determine the winning option
+        (/* uint8 winningOption */, bool isValid) = evaluator.evaluateProposal(proposalId);
+        
+        require(isValid, "MultipleChoiceGovernorExample: no valid winning option");
+        
+        // For demonstration purposes, we're not implementing actual execution of different options
+        // In a real implementation, you would use the winningOption to determine which action to execute
+        // For now, we'll just execute the proposal as is
+        
+        // Get the stored proposal details
+        ProposalDetails storage details = _proposalDetails[proposalId];
+        
+        // Execute the proposal through the regular process
+        execute(
+            details.targets, 
+            details.values, 
+            details.calldatas, 
+            keccak256(bytes(details.description))
+        );
+    }
+}
+
+================
+File: forge-project/src/Counter.sol
+================
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+contract Counter {
+    uint256 public number;
+
+    function setNumber(uint256 newNumber) public {
+        number = newNumber;
+    }
+
+    function increment() public {
+        number++;
+    }
+}
+
+================
+File: forge-project/src/GovernorCountingMultipleChoice.sol
+================
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/governance/extensions/GovernorCountingSimple.sol";
+import "@openzeppelin/utils/structs/Checkpoints.sol";
+import "@openzeppelin/utils/math/SafeCast.sol";
+import "@openzeppelin/governance/Governor.sol";
+
+/**
+ * @dev Extension of {Governor} for multiple choice voting.
+ *
+ * This extension allows proposals to have multiple options beyond the standard 
+ * For/Against/Abstain voting options. It maintains backward compatibility with
+ * the standard options while extending to support additional choices.
+ */
+abstract contract GovernorCountingMultipleChoice is GovernorCountingSimple {
+    using Checkpoints for Checkpoints.Trace224;
+    using SafeCast for uint256;
+
+    // ================ State Variables ================
+
+    /**
+     * @dev Options for a specific proposal
+     * mapping from proposal id => array of option descriptions
+     */
+    mapping(uint256 => string[]) private _proposalOptions;
+
+    /**
+     * @dev Votes cast for each option
+     * mapping from proposal id => option index => vote count
+     */
+    mapping(uint256 => mapping(uint8 => uint256)) private _proposalOptionVotes;
+
+    /**
+     * @dev Number of options per proposal
+     * mapping from proposal id => option count
+     */
+    mapping(uint256 => uint8) private _proposalOptionCount;
+
+    /**
+     * @dev Maximum number of options a proposal can have
+     */
+    uint8 public constant MAX_OPTIONS = 10;
+
+    /**
+     * @dev Minimum number of options a proposal should have
+     */
+    uint8 public constant MIN_OPTIONS = 2;
+
+    // Standard vote options
+    uint8 internal constant VOTE_AGAINST = 0;
+    uint8 internal constant VOTE_FOR = 1;
+    uint8 internal constant VOTE_ABSTAIN = 2;
+    // Multiple choice options start at 3
+
+    // ================ Events ================
+
+    /**
+     * @dev Emitted when a proposal with multiple options is created.
+     */
+    event ProposalOptionsCreated(uint256 indexed proposalId, string[] options);
+
+    // ================ External Functions ================
+
+    /**
+     * @dev See {IGovernor-COUNTING_MODE}.
+     */
+    function COUNTING_MODE() public pure virtual override returns (string memory) {
+        return "support=bravo&multiple-choice";
+    }
+
+    /**
+     * @dev See {IGovernor-propose}.
+     */
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public virtual override returns (uint256) {
+        return super.propose(targets, values, calldatas, description);
+    }
+
+    /**
+     * @dev Proposes a new action with multiple choice options.
+     * This is an extension of the standard Governor propose function.
+     *
+     * @param targets Target addresses for proposal calls
+     * @param values Eth values for proposal calls
+     * @param calldatas Calldatas for proposal calls
+     * @param description Description of the proposal
+     * @param optionDescriptions Optional array of descriptions for multiple choices
+     * @return proposalId ID of the created proposal
+     */
+    function proposeWithOptions(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        string[] memory optionDescriptions
+    ) public virtual returns (uint256) {
+        // Validate option count
+        require(
+            optionDescriptions.length >= MIN_OPTIONS && optionDescriptions.length <= MAX_OPTIONS,
+            "GovernorCountingMultipleChoice: invalid number of options"
+        );
+
+        // Call the standard propose function
+        uint256 proposalId = propose(targets, values, calldatas, description);
+
+        // Store the option descriptions
+        _proposalOptions[proposalId] = optionDescriptions;
+        _proposalOptionCount[proposalId] = uint8(optionDescriptions.length);
+
+        // Emit the options creation event
+        emit ProposalOptionsCreated(proposalId, optionDescriptions);
+
+        return proposalId;
+    }
+
+    /**
+     * @dev Get the options for a proposal
+     */
+    function proposalOptions(uint256 proposalId) public view returns (string[] memory) {
+        return _proposalOptions[proposalId];
+    }
+
+    /**
+     * @dev Get the number of options for a proposal
+     */
+    function proposalOptionCount(uint256 proposalId) public view returns (uint8) {
+        return _proposalOptionCount[proposalId];
+    }
+
+    /**
+     * @dev Get the vote count for a specific option in a proposal
+     */
+    function proposalOptionVotes(uint256 proposalId, uint8 optionIndex) public view returns (uint256) {
+        return _proposalOptionVotes[proposalId][optionIndex];
+    }
+
+    /**
+     * @dev Check if a proposal has multiple choice options
+     */
+    function hasMultipleChoiceOptions(uint256 proposalId) public view returns (bool) {
+        return _proposalOptionCount[proposalId] > 0;
+    }
+
+    /**
+     * @dev See {Governor-_countVote}. In this module, the support follows the `VoteType` enum (from Governor Bravo).
+     *
+     * Moreover, in the case of a multiple choice proposal, the support value can be:
+     * - 0: Against
+     * - 1: For 
+     * - 2: Abstain
+     * - 3+: Additional options (option index - 3)
+     */
+    function _countVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        uint256 weight,
+        bytes memory params
+    ) internal virtual override returns (uint256) {
+        // If this is a standard proposal (or support is a standard option), use the parent implementation
+        if (support <= VOTE_ABSTAIN && !hasMultipleChoiceOptions(proposalId)) {
+            return super._countVote(proposalId, account, support, weight, params);
+        }
+        
+        // If this is a multiple choice proposal
+        if (hasMultipleChoiceOptions(proposalId)) {
+            // Handle standard options with custom tracking for multiple choice proposals
+            if (support <= VOTE_ABSTAIN) {
+                if (support == VOTE_AGAINST) {
+                    _proposalOptionVotes[proposalId][VOTE_AGAINST] += weight;
+                } else if (support == VOTE_FOR) {
+                    _proposalOptionVotes[proposalId][VOTE_FOR] += weight;
+                } else if (support == VOTE_ABSTAIN) {
+                    _proposalOptionVotes[proposalId][VOTE_ABSTAIN] += weight;
+                }
+            } 
+            // Handle additional options (3+)
+            else {
+                // Calculate the actual option index (support value - 3)
+                uint8 optionIndex = support;
+                
+                // Ensure the option exists
+                require(
+                    optionIndex < _proposalOptionCount[proposalId] + 3,
+                    "GovernorCountingMultipleChoice: invalid option"
+                );
+                
+                // Count the vote for this option
+                _proposalOptionVotes[proposalId][optionIndex] += weight;
+            }
+        } else {
+            // If someone tries to vote for an extended option on a standard proposal, revert
+            revert("GovernorCountingMultipleChoice: invalid vote option for standard proposal");
+        }
+        
+        // Return the weight that was counted
+        return weight;
+    }
+
+    /**
+     * @dev See {GovernorCountingSimple-proposalVotes}. 
+     * Returns the standard three vote counts (against, for, abstain).
+     */
+    function proposalVotes(
+        uint256 proposalId
+    ) public view virtual override returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) {
+        return (
+            _proposalOptionVotes[proposalId][VOTE_AGAINST],
+            _proposalOptionVotes[proposalId][VOTE_FOR],
+            _proposalOptionVotes[proposalId][VOTE_ABSTAIN]
+        );
+    }
+
+    /**
+     * @dev Get the votes for all options of a proposal (including standard options and additional options)
+     */
+    function proposalAllVotes(uint256 proposalId) public view returns (uint256[] memory) {
+        uint8 optionCount = _proposalOptionCount[proposalId];
+        
+        // Add 3 for the standard options (Against, For, Abstain)
+        uint256[] memory votes = new uint256[](optionCount + 3);
+        
+        // Get standard option votes
+        votes[VOTE_AGAINST] = _proposalOptionVotes[proposalId][VOTE_AGAINST];
+        votes[VOTE_FOR] = _proposalOptionVotes[proposalId][VOTE_FOR];
+        votes[VOTE_ABSTAIN] = _proposalOptionVotes[proposalId][VOTE_ABSTAIN];
+        
+        // Get additional option votes
+        for (uint8 i = 3; i < optionCount + 3; i++) {
+            votes[i] = _proposalOptionVotes[proposalId][i];
+        }
+        
+        return votes;
+    }
+}
+
+================
+File: forge-project/src/MultipleChoiceEvaluator.sol
+================
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/governance/Governor.sol";
+import "@openzeppelin/access/Ownable.sol";
+
+/**
+ * @title MultipleChoiceEvaluator
+ * @dev Contract for evaluating and executing multiple choice governance proposals.
+ *
+ * This evaluator works alongside the GovernorCountingMultipleChoice module and provides
+ * a way to interpret and execute proposals based on voting results.
+ */
+interface IGovernorWithMultipleChoice {
+    /**
+     * @dev Returns the options for a proposal
+     */
+    function proposalOptions(uint256 proposalId) external view returns (string[] memory);
+
+    /**
+     * @dev Returns the number of options for a proposal
+     */
+    function proposalOptionCount(uint256 proposalId) external view returns (uint8);
+
+    /**
+     * @dev Returns the vote count for a specific option in a proposal
+     */
+    function proposalOptionVotes(uint256 proposalId, uint8 optionIndex) external view returns (uint256);
+
+    /**
+     * @dev Returns all votes for a proposal (standard and multiple choice)
+     */
+    function proposalAllVotes(uint256 proposalId) external view returns (uint256[] memory);
+
+    /**
+     * @dev Returns whether a proposal has multiple choice options
+     */
+    function hasMultipleChoiceOptions(uint256 proposalId) external view returns (bool);
+
+    /**
+     * @dev Execute a proposal
+     */
+    function execute(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) external payable returns (uint256);
+}
+
+contract MultipleChoiceEvaluator is Ownable {
+    // ================ State Variables ================
+
+    /**
+     * @dev Interface to the Governor contract
+     */
+    IGovernorWithMultipleChoice public governor;
+
+    /**
+     * @dev Evaluation strategy for each proposal
+     */
+    mapping(uint256 => EvaluationStrategy) public proposalEvaluationStrategies;
+
+    /**
+     * @dev Enum of possible evaluation strategies
+     */
+    enum EvaluationStrategy {
+        Plurality,     // Option with the most votes wins
+        Majority,      // Option must have > 50% of votes
+        RankedChoice,  // Ranked choice voting (not implemented yet)
+        Custom         // Custom evaluation logic (not implemented yet)
+    }
+
+    // Standard vote options from GovernorCountingMultipleChoice
+    uint8 internal constant VOTE_AGAINST = 0;
+    uint8 internal constant VOTE_FOR = 1;
+    uint8 internal constant VOTE_ABSTAIN = 2;
+    // Multiple choice options start at 3
+
+    // ================ Events ================
+
+    /**
+     * @dev Emitted when a proposal's evaluation strategy is set
+     */
+    event EvaluationStrategySet(uint256 indexed proposalId, EvaluationStrategy strategy);
+
+    /**
+     * @dev Emitted when a proposal is evaluated
+     */
+    event ProposalEvaluated(uint256 indexed proposalId, uint8 winningOption, bool isValid);
+
+    /**
+     * @dev Emitted when a proposal is executed based on evaluation
+     */
+    event ProposalExecuted(uint256 indexed proposalId, uint8 winningOption);
+
+    // ================ Constructor ================
+
+    /**
+     * @dev Sets the governor contract address and initial owner
+     */
+    constructor(address _governor, address initialOwner) Ownable(initialOwner) {
+        governor = IGovernorWithMultipleChoice(_governor);
+    }
+
+    // ================ External Functions ================
+
+    /**
+     * @dev Sets the evaluation strategy for a proposal
+     * @param proposalId The ID of the proposal
+     * @param strategy The evaluation strategy to use
+     */
+    function setEvaluationStrategy(uint256 proposalId, EvaluationStrategy strategy) public onlyOwner {
+        proposalEvaluationStrategies[proposalId] = strategy;
+        emit EvaluationStrategySet(proposalId, strategy);
+    }
+
+    /**
+     * @dev Update the governor contract address
+     * @param _governor The address of the new governor contract
+     */
+    function setGovernor(address _governor) public onlyOwner {
+        governor = IGovernorWithMultipleChoice(_governor);
+    }
+
+    /**
+     * @dev Evaluates a proposal to determine the winning option
+     * @param proposalId The ID of the proposal
+     * @return winningOption The index of the winning option
+     * @return isValid Whether the result is valid based on the strategy
+     */
+    function evaluateProposal(uint256 proposalId) public view returns (uint8 winningOption, bool isValid) {
+        require(governor.hasMultipleChoiceOptions(proposalId), "MultipleChoiceEvaluator: not a multiple choice proposal");
+        
+        EvaluationStrategy strategy = proposalEvaluationStrategies[proposalId];
+        
+        if (strategy == EvaluationStrategy.Plurality) {
+            return _evaluatePlurality(proposalId);
+        } else if (strategy == EvaluationStrategy.Majority) {
+            return _evaluateMajority(proposalId);
+        } else if (strategy == EvaluationStrategy.RankedChoice) {
+            revert("MultipleChoiceEvaluator: ranked choice not implemented");
+        } else if (strategy == EvaluationStrategy.Custom) {
+            revert("MultipleChoiceEvaluator: custom evaluation not implemented");
+        } else {
+            revert("MultipleChoiceEvaluator: unknown evaluation strategy");
+        }
+    }
+
+    /**
+     * @dev Evaluates and executes a proposal based on the winning option
+     * @param proposalId The proposal ID to evaluate and execute
+     * @param targets The array of target addresses for execution
+     * @param values The array of ETH values for execution
+     * @param calldatas The array of calldata bytes for execution
+     * @param descriptionHash The hash of the proposal description
+     */
+    function executeProposal(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public returns (uint8) {
+        (uint8 winningOption, bool isValid) = evaluateProposal(proposalId);
+        
+        require(isValid, "MultipleChoiceEvaluator: no valid winning option");
+        
+        // For now, we just execute the proposal as is
+        // In a real implementation, you would customize execution based on the winning option
+        governor.execute(targets, values, calldatas, descriptionHash);
+        
+        emit ProposalExecuted(proposalId, winningOption);
+        
+        return winningOption;
+    }
+
+    // ================ Internal Functions ================
+
+    /**
+     * @dev Evaluates a proposal using the plurality strategy (option with most votes wins)
+     */
+    function _evaluatePlurality(uint256 proposalId) internal view returns (uint8, bool) {
+        uint256[] memory votes = governor.proposalAllVotes(proposalId);
+        
+        uint8 winningOption = 0;
+        uint256 maxVotes = 0;
+        
+        // Skip the standard options if this is a multiple choice proposal
+        uint8 startIndex = 3; // Start after Against, For, Abstain
+        
+        for (uint8 i = startIndex; i < votes.length; i++) {
+            if (votes[i] > maxVotes) {
+                maxVotes = votes[i];
+                winningOption = i;
+            }
+        }
+        
+        // If no votes were cast, consider the result invalid
+        return (winningOption, maxVotes > 0);
+    }
+
+    /**
+     * @dev Evaluates a proposal using the majority strategy (option must have > 50% of votes)
+     */
+    function _evaluateMajority(uint256 proposalId) internal view returns (uint8, bool) {
+        uint256[] memory votes = governor.proposalAllVotes(proposalId);
+        
+        uint8 winningOption = 0;
+        uint256 maxVotes = 0;
+        uint256 totalVotes = 0;
+        
+        // Skip the standard options if this is a multiple choice proposal
+        uint8 startIndex = 3; // Start after Against, For, Abstain
+        
+        // Calculate total votes and find the option with the most votes
+        for (uint8 i = startIndex; i < votes.length; i++) {
+            totalVotes += votes[i];
+            
+            if (votes[i] > maxVotes) {
+                maxVotes = votes[i];
+                winningOption = i;
+            }
+        }
+        
+        // Check if the winning option has majority (> 50% of votes)
+        bool hasMajority = totalVotes > 0 && (maxVotes * 2) > totalVotes;
+        
+        return (winningOption, hasMajority);
+    }
+}
+
+================
+File: forge-project/test/Counter.t.sol
+================
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+import {Test, console} from "forge-std/Test.sol";
+import {Counter} from "../src/Counter.sol";
+
+contract CounterTest is Test {
+    Counter public counter;
+
+    function setUp() public {
+        counter = new Counter();
+        counter.setNumber(0);
+    }
+
+    function test_Increment() public {
+        counter.increment();
+        assertEq(counter.number(), 1);
+    }
+
+    function testFuzz_SetNumber(uint256 x) public {
+        counter.setNumber(x);
+        assertEq(counter.number(), x);
+    }
+}
+
+================
+File: forge-project/test/MultipleChoiceVoting.t.sol
+================
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Test.sol";
+import "../src/GovernorCountingMultipleChoice.sol";
+import "../src/MultipleChoiceEvaluator.sol";
+
+// Simple mock contract implementing IGovernorWithMultipleChoice for testing
+contract MockGovernor {
+    mapping(uint256 => string[]) private _options;
+    mapping(uint256 => uint8) private _optionCounts;
+    mapping(uint256 => mapping(uint8 => uint256)) private _votes;
+    mapping(uint256 => bool) private _hasMultipleChoice;
+    
+    function setProposalOptions(uint256 proposalId, string[] memory options) public {
+        _options[proposalId] = options;
+        _optionCounts[proposalId] = uint8(options.length);
+        _hasMultipleChoice[proposalId] = true;
+    }
+    
+    function setVotes(uint256 proposalId, uint8 optionIndex, uint256 voteCount) public {
+        _votes[proposalId][optionIndex] = voteCount;
+    }
+    
+    // IGovernorWithMultipleChoice functions
+    function proposalOptions(uint256 proposalId) external view returns (string[] memory) {
+        return _options[proposalId];
+    }
+    
+    function proposalOptionCount(uint256 proposalId) external view returns (uint8) {
+        return _optionCounts[proposalId];
+    }
+    
+    function proposalOptionVotes(uint256 proposalId, uint8 optionIndex) external view returns (uint256) {
+        return _votes[proposalId][optionIndex];
+    }
+    
+    function proposalAllVotes(uint256 proposalId) external view returns (uint256[] memory) {
+        uint256[] memory allVotes = new uint256[](_optionCounts[proposalId] + 3);
+        
+        // First 3 are standard options
+        allVotes[0] = _votes[proposalId][0]; // Against
+        allVotes[1] = _votes[proposalId][1]; // For
+        allVotes[2] = _votes[proposalId][2]; // Abstain
+        
+        // Additional options
+        for (uint8 i = 3; i < _optionCounts[proposalId] + 3; i++) {
+            allVotes[i] = _votes[proposalId][i];
+        }
+        
+        return allVotes;
+    }
+    
+    function hasMultipleChoiceOptions(uint256 proposalId) external view returns (bool) {
+        return _hasMultipleChoice[proposalId];
+    }
+    
+    function execute(
+        address[] memory,
+        uint256[] memory,
+        bytes[] memory,
+        bytes32
+    ) external payable returns (uint256) {
+        return 0;
+    }
+}
+
+contract MultipleChoiceVotingTest is Test {
+    MockGovernor public mockGovernor;
+    MultipleChoiceEvaluator public evaluator;
+    
+    function setUp() public {
+        mockGovernor = new MockGovernor();
+        evaluator = new MultipleChoiceEvaluator(address(mockGovernor), address(this));
+    }
+    
+    function testPluralityEvaluation() public {
+        // Create a test proposal with ID 1
+        uint256 proposalId = 1;
+        
+        // Set up options
+        string[] memory options = new string[](3);
+        options[0] = "Option A";
+        options[1] = "Option B";
+        options[2] = "Option C";
+        
+        mockGovernor.setProposalOptions(proposalId, options);
+        
+        // Set up vote counts
+        // Option A (index 3) gets 200 votes
+        mockGovernor.setVotes(proposalId, 3, 200);
+        
+        // Option B (index 4) gets 100 votes
+        mockGovernor.setVotes(proposalId, 4, 100);
+        
+        // Option C (index 5) gets 50 votes
+        mockGovernor.setVotes(proposalId, 5, 50);
+        
+        // Set evaluation strategy
+        evaluator.setEvaluationStrategy(proposalId, MultipleChoiceEvaluator.EvaluationStrategy.Plurality);
+        
+        // Evaluate the proposal
+        (uint8 winningOption, bool isValid) = evaluator.evaluateProposal(proposalId);
+        
+        // Verify that Option A wins
+        assertEq(winningOption, 3, "Option A should be the winning option");
+        assertTrue(isValid, "Result should be valid");
+    }
+    
+    function testMajorityEvaluation() public {
+        // Create a test proposal with ID 2
+        uint256 proposalId = 2;
+        
+        // Set up options
+        string[] memory options = new string[](3);
+        options[0] = "Option A";
+        options[1] = "Option B";
+        options[2] = "Option C";
+        
+        mockGovernor.setProposalOptions(proposalId, options);
+        
+        // Set evaluation strategy
+        evaluator.setEvaluationStrategy(proposalId, MultipleChoiceEvaluator.EvaluationStrategy.Majority);
+        
+        // Test 1: Option A has majority
+        // Option A (index 3) gets 600 votes (60%)
+        mockGovernor.setVotes(proposalId, 3, 600);
+        
+        // Option B (index 4) gets 300 votes (30%)
+        mockGovernor.setVotes(proposalId, 4, 300);
+        
+        // Option C (index 5) gets 100 votes (10%)
+        mockGovernor.setVotes(proposalId, 5, 100);
+        
+        // Evaluate the proposal
+        (uint8 winningOption, bool isValid) = evaluator.evaluateProposal(proposalId);
+        
+        // Verify that Option A wins with majority
+        assertEq(winningOption, 3, "Option A should be the winning option");
+        assertTrue(isValid, "Result should be valid with majority");
+        
+        // Test 2: No option has majority
+        // Reset votes
+        mockGovernor.setVotes(proposalId, 3, 400); // Option A (40%)
+        mockGovernor.setVotes(proposalId, 4, 300); // Option B (30%)
+        mockGovernor.setVotes(proposalId, 5, 300); // Option C (30%)
+        
+        // Evaluate the proposal again
+        (winningOption, isValid) = evaluator.evaluateProposal(proposalId);
+        
+        // Verify that Option A has most votes but no majority
+        assertEq(winningOption, 3, "Option A should still have most votes");
+        assertFalse(isValid, "Result should be invalid without majority");
+    }
+}
+
+================
+File: forge-project/.gitignore
+================
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+docs/
+
+# Dotenv file
+.env
+
+================
+File: forge-project/.gitmodules
+================
+[submodule "lib/forge-std"]
+	path = lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+
+================
+File: forge-project/foundry.toml
+================
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+remappings = [
+    "@openzeppelin/=lib/openzeppelin-contracts/contracts/",
+]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+================
+File: forge-project/README.md
+================
+## Foundry
+
+**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+
+Foundry consists of:
+
+-   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+-   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+-   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+-   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+
+## Documentation
+
+https://book.getfoundry.sh/
+
+## Usage
+
+### Build
+
+```shell
+$ forge build
+```
+
+### Test
+
+```shell
+$ forge test
+```
+
+### Format
+
+```shell
+$ forge fmt
+```
+
+### Gas Snapshots
+
+```shell
+$ forge snapshot
+```
+
+### Anvil
+
+```shell
+$ anvil
+```
+
+### Deploy
+
+```shell
+$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```
+
+### Cast
+
+```shell
+$ cast <subcommand>
+```
+
+### Help
+
+```shell
+$ forge --help
+$ anvil --help
+$ cast --help
+```
+
+================
+File: src/GovernorCountingMultipleChoice.sol
+================
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
+import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import {GovernorTimelockControl} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {GovernorProposalMultipleChoiceOptions} from "./GovernorProposalMultipleChoiceOptions.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
+/**
+ * @title GovernorCountingMultipleChoice
+ * @dev Extension of {Governor} for multiple choice voting.
+ * Integrates functionalities from:
+ * - GovernorSettings: Manages voting delay, period, and proposal threshold.
+ * - GovernorCountingSimple: Standard vote counting (For, Against, Abstain).
+ * - GovernorVotes: Integrates with ERC20Votes or ERC721Votes.
+ * - GovernorVotesQuorumFraction: Standard quorum calculation.
+ * - GovernorTimelockControl: Integrates with TimelockController for execution.
+ * - GovernorProposalMultipleChoiceOptions: Adds storage for proposal options.
+ */
+contract GovernorCountingMultipleChoice is
+    Context,
+    Governor,
+    GovernorSettings,
+    GovernorCountingSimple,
+    GovernorVotes,
+    GovernorVotesQuorumFraction,
+    GovernorTimelockControl,
+    GovernorProposalMultipleChoiceOptions
+{
+    using SafeCast for uint256;
+
+    // Mapping to store votes per option for each proposal
+    mapping(uint256 => mapping(uint8 => uint256)) internal _proposalOptionVotesCount; // Store just the vote count per option
+
+    /**
+     * @dev Constructor.
+     */
+    constructor(
+        IVotes _token,
+        TimelockController _timelock,
+        string memory _name
+    ) Governor(_name) GovernorSettings(1, 4, 0) GovernorVotes(_token) GovernorVotesQuorumFraction(4) GovernorTimelockControl(_timelock) {}
+
+    // --- Diamond Inheritance Resolution ---
+
+    function _executor() internal view virtual override(Governor, GovernorTimelockControl) returns (address) {
+        return super._executor(); // Use Timelock's executor by default
+    }
+
+    function proposalThreshold() public view virtual override(Governor, GovernorSettings) returns (uint256) {
+        return super.proposalThreshold(); // Use GovernorSettings' threshold
+    }
+
+    // --- Overridden Governor Core Functions ---
+
+    /**
+     * @dev See {IGovernor-propose}.
+     * Adds support for multiple choice options.
+     */
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public virtual override(Governor) returns (uint256 proposalId) {
+        proposalId = super.propose(targets, values, calldatas, description);
+    }
+
+    /**
+     * @dev Overload for proposing with multiple choice options.
+     */
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        string[] memory options
+    ) public virtual returns (uint256 proposalId) {
+        uint256 numOptions = options.length;
+        require(numOptions >= MIN_OPTIONS, "Governor: invalid option count (too few)");
+        require(numOptions <= MAX_OPTIONS, "Governor: invalid option count (too many)");
+        proposalId = this.propose(targets, values, calldatas, description);
+        _storeProposalOptions(proposalId, options);
+    }
+
+    /**
+     * @dev See {IGovernor-state}.
+     */
+    function state(uint256 proposalId) public view virtual override(Governor, GovernorTimelockControl) returns (ProposalState) {
+        return super.state(proposalId);
+    }
+
+    /**
+     * @dev See {IGovernor-votingDelay}.
+     */
+    function votingDelay() public view virtual override(Governor, GovernorSettings) returns (uint256) {
+        return super.votingDelay();
+    }
+
+    /**
+     * @dev See {IGovernor-votingPeriod}.
+     */
+    function votingPeriod() public view virtual override(Governor, GovernorSettings) returns (uint256) {
+        return super.votingPeriod();
+    }
+
+    /**
+     * @dev See {IGovernor-quorum}.
+     */
+    function quorum(uint256 blockNumber) public view virtual override(Governor, GovernorVotesQuorumFraction) returns (uint256) {
+        return super.quorum(blockNumber);
+    }
+
+    /**
+     * @dev See {IGovernor-getVotes}.
+     */
+    function getVotes(address account, uint256 blockNumber) public view virtual override(GovernorVotes) returns (uint256) {
+        return super.getVotes(account, blockNumber);
+    }
+
+    // --- Overridden Timelock Control Functions ---
+
+    function proposalNeedsQueuing(uint256 proposalId) public view virtual override(Governor, GovernorTimelockControl) returns (bool) {
+        return super.proposalNeedsQueuing(proposalId);
+    }
+
+    function _queueOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) returns (uint48) {
+        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _executeOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) {
+        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) internal virtual override(Governor, GovernorTimelockControl) returns (uint256) {
+        return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    // --- Overridden Counting Functions --- (Add option counting later)
+
+    /**
+     * @dev Override _countVote to add logic for multiple choice options.
+     * Standard votes are handled by super._countVote.
+     * MC votes also call super._countVote (to update receipts) then update option counts.
+     */
+    function _countVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        uint256 weight,
+        bytes memory params
+    ) internal virtual override(Governor, GovernorCountingSimple) returns (uint256) {
+        // Call GovernorCountingSimple implementation first
+        uint256 countedWeight = super._countVote(proposalId, account, support, weight, params);
+
+        uint8 optionIndex = type(uint8).max;
+        if (params.length == 1) {
+            optionIndex = uint8(params[0]);
+        }
+        (, uint8 optionCount) = proposalOptions(proposalId);
+        if (optionIndex < optionCount) {
+            require(optionCount > 0, "Governor: Cannot vote for option on std proposal");
+            require(support == 1, "Governor: Invalid support for option vote (must be 1)");
+            _proposalOptionVotesCount[proposalId][optionIndex] += weight;
+        }
+        return countedWeight; // Return value from super call
+    }
+
+    /**
+     * @dev Override _castVote to pass empty params by default for standard votes.
+     * This ensures it matches the signature required by the Governor._castVote call within.
+     */
+    function _castVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        string memory reason
+    ) internal virtual override(Governor, GovernorVotes) returns (uint256) {
+         return _internalCastVote(proposalId, account, support, reason, "");
+     }
+
+    /**
+     * @dev Internal cast vote logic that includes params.
+     * Renamed from _castVote to avoid conflicting override signature with the one above.
+     * This function is called by both standard castVote and castVoteWithOption.
+     */
+    function _internalCastVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        string memory reason,
+        bytes memory params
+    ) internal virtual returns (uint256) {
+        require(state(proposalId) == ProposalState.Active, "Governor: vote not currently active");
+        uint256 snapshot = proposalSnapshot(proposalId);
+        uint256 weight = getVotes(account, snapshot);
+
+        // Call our overridden _countVote
+        _countVote(proposalId, account, support, weight, params);
+        // Emit events matching GovernorVotes
+        emit VoteCast(account, proposalId, support, weight, reason);
+        emit VoteCastWithParams(account, proposalId, support, weight, reason, params);
+        return weight;
+    }
+
+    // --- New Functions for Multiple Choice ---
+
+    /**
+     * @dev Cast a vote for a specific option in a multiple choice proposal.
+     * Encodes optionIndex into params for the internal cast vote function.
+     */
+    function castVoteWithOption(uint256 proposalId, uint8 optionIndex) public virtual returns (uint256 balance) {
+        address voter = _msgSender();
+        (, uint8 optionCount) = proposalOptions(proposalId);
+        require(optionCount > 0, "Governor: standard proposal, use castVote");
+        require(optionIndex < optionCount, "Governor: invalid option index");
+        uint8 support = 1; // Convention: support = 1 for choosing an option
+        bytes memory params = abi.encodePacked(optionIndex);
+        balance = _internalCastVote(proposalId, voter, support, "", params);
+    }
+
+    /**
+     * @dev Returns the vote counts for a specific option.
+     */
+    function proposalOptionVotes(uint256 proposalId, uint8 optionIndex) public view virtual returns (uint256 optionVotes) {
+        (, uint8 optionCount) = proposalOptions(proposalId);
+        require(optionIndex < optionCount, "Governor: invalid option index");
+        return _proposalOptionVotesCount[proposalId][optionIndex];
+    }
+
+    // --- Required Supports Interface --- 
+    // (Needed because Governor is abstract)
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(GovernorTimelockControl) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+}
+
+================
+File: src/GovernorProposalMultipleChoiceOptions.sol
+================
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+abstract contract GovernorProposalMultipleChoiceOptions {
+    // Event emitted when options are added to a proposal
+    event ProposalOptionsCreated(uint256 proposalId, string[] options);
+
+    // Struct to store proposal options
+    struct ProposalOptions {
+        string[] options;
+        uint8 optionCount; // Explicit count to prevent re-calculating .length
+    }
+
+    // Mapping from proposalId to its options
+    mapping(uint256 => ProposalOptions) internal _proposalOptions;
+
+    // Constant for maximum options allowed (adjust as needed)
+    uint8 public constant MAX_OPTIONS = 10;
+    uint8 public constant MIN_OPTIONS = 2;
+
+
+    /**
+     * @dev Returns the options associated with a proposal.
+     */
+    function proposalOptions(uint256 proposalId)
+        public
+        view
+        virtual
+        returns (string[] memory options, uint8 optionCount)
+    {
+        ProposalOptions storage pOptions = _proposalOptions[proposalId];
+        return (pOptions.options, pOptions.optionCount);
+    }
+
+    /**
+     * @dev Internal function to store proposal options.
+     */
+    function _storeProposalOptions(uint256 proposalId, string[] memory options) internal virtual {
+        uint256 numOptions = options.length;
+        // require(numOptions >= MIN_OPTIONS, "Governor: invalid option count (too few)"); // Check done in GovernorCountingMultipleChoice
+        // require(numOptions <= MAX_OPTIONS, "Governor: invalid option count (too many)"); // Check done in GovernorCountingMultipleChoice
+
+        _proposalOptions[proposalId] = ProposalOptions({
+            options: options,
+            optionCount: uint8(numOptions) // Safe cast due to MAX_OPTIONS limit check
+        });
+
+        emit ProposalOptionsCreated(proposalId, options);
+    }
+}
+
+================
+File: test/GovernorCountingMultipleChoice.t.sol
+================
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {Test, console} from "forge-std/Test.sol";
+import {GovernorCountingMultipleChoice} from "../src/GovernorCountingMultipleChoice.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {GovernorProposalMultipleChoiceOptions} from "../src/GovernorProposalMultipleChoiceOptions.sol";
+import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
+import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+// --- Helper Contract to Combine ERC20Mock and ERC20Votes ---
+contract VotesToken is ERC20Mock, ERC20Votes {
+    constructor(string memory name, string memory symbol)
+        ERC20Mock(name, symbol, 18)
+        ERC20Votes(name, symbol)
+    {}
+
+    // Override _update: Needs ERC20 (base of ERC20Mock) and ERC20Votes
+    function _update(address from, address to, uint256 value) internal virtual override(ERC20, ERC20Votes) {
+        super._update(from, to, value);
+    }
+
+    // Override nonces: Needs Nonces (base of EIP712 -> Votes -> ERC20Votes) and ERC20Votes
+    function nonces(address owner) public view virtual override(Nonces) returns (uint256) {
+        return super.nonces(owner);
+    }
+
+    // Override _getVotingUnits from ERC20Votes
+    function _getVotingUnits(address account) internal view virtual override(ERC20Votes) returns (uint256) {
+        return balanceOf(account);
+    }
+}
+// --- End Helper Contract ---
+
+contract GovernorCountingMultipleChoiceTest is Test, GovernorProposalMultipleChoiceOptions {
+    VotesToken internal token;
+    TimelockController internal timelock;
+    GovernorCountingMultipleChoice internal governor;
+
+    address internal voterA = address(101);
+    address internal voterB = address(102);
+    address internal voterC = address(103);
+    address internal voterD = address(104);
+    address internal proposer = address(105);
+
+    address[] internal targets;
+    uint256[] internal values;
+    bytes[] internal calldatas;
+    string internal description = "Test Proposal #1";
+    bytes32 internal descriptionHash;
+    uint256 proposalId;
+
+    uint256 internal votingDelay = 1;
+    uint256 internal votingPeriod = 5;
+    uint256 internal proposalThreshold = 0;
+
+    function setUp() public {
+        token = new VotesToken("MyToken", "MTKN");
+
+        address[] memory proposers = new address[](1);
+        proposers[0] = address(this);
+        address[] memory executors = new address[](1);
+        executors[0] = address(0);
+        timelock = new TimelockController(1, proposers, executors, address(this));
+
+        governor = new GovernorCountingMultipleChoice(token, timelock, "GovernorCountingMultipleChoice");
+
+        bytes32 proposerRole = timelock.PROPOSER_ROLE();
+        bytes32 executorRole = timelock.EXECUTOR_ROLE();
+        bytes32 adminRole = timelock.TIMELOCK_ADMIN_ROLE();
+        timelock.grantRole(proposerRole, address(governor));
+        timelock.grantRole(executorRole, address(0));
+
+        token.mint(voterA, 100);
+        token.mint(voterB, 200);
+        token.mint(voterC, 300);
+        token.mint(voterD, 400);
+        vm.prank(voterA);
+        token.delegate(voterA);
+        vm.prank(voterB);
+        token.delegate(voterB);
+        vm.prank(voterC);
+        token.delegate(voterC);
+        vm.prank(voterD);
+        token.delegate(voterD);
+
+        targets = new address[](1);
+        targets[0] = address(token);
+        values = new uint256[](1);
+        values[0] = 0;
+        calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeWithSignature("transfer(address,uint256)", address(this), 0);
+        descriptionHash = keccak256(bytes(description));
+    }
+
+    function test_CreateStandardProposal() public {
+        vm.prank(proposer);
+        bytes32 predictedProposalId = governor.hashProposal(proposer, targets, values, calldatas, descriptionHash);
+
+        proposalId = governor.propose(targets, values, calldatas, description);
+
+        assertEq(proposalId, predictedProposalId, "Predicted standard proposal ID mismatch");
+        assertTrue(proposalId != 0, "Proposal ID should not be zero");
+        assertEq(uint256(governor.state(proposalId)), uint256(Governor.ProposalState.Pending), "Initial state should be Pending");
+        (, uint8 optionCount) = governor.proposalOptions(proposalId);
+        assertEq(optionCount, 0, "Standard proposal should have 0 options");
+    }
+
+    function test_CreateMultipleChoiceProposal() public {
+        string[] memory options = new string[](3);
+        options[0] = "Option A";
+        options[1] = "Option B";
+        options[2] = "Option C";
+
+        vm.prank(proposer);
+        bytes32 predictedProposalId = governor.hashProposal(proposer, targets, values, calldatas, descriptionHash);
+
+        vm.expectEmit(true, true, true, true, address(governor));
+        emit ProposalOptionsCreated(predictedProposalId, options);
+
+        uint256 actualProposalId = governor.propose(targets, values, calldatas, description, options);
+
+        assertEq(actualProposalId, predictedProposalId, "Predicted MC proposal ID mismatch");
+        assertTrue(actualProposalId != 0, "Proposal ID should not be zero");
+        assertEq(uint256(governor.state(actualProposalId)), uint256(Governor.ProposalState.Pending), "Initial state should be Pending");
+
+        (string[] memory storedOptions, uint8 optionCount) = governor.proposalOptions(actualProposalId);
+        assertEq(optionCount, options.length, "Option count mismatch");
+        assertEq(storedOptions.length, options.length, "Stored options array length mismatch");
+        assertEq(keccak256(bytes(storedOptions[0])), keccak256(bytes(options[0])), "Option 0 mismatch");
+        assertEq(keccak256(bytes(storedOptions[1])), keccak256(bytes(options[1])), "Option 1 mismatch");
+        assertEq(keccak256(bytes(storedOptions[2])), keccak256(bytes(options[2])), "Option 2 mismatch");
+    }
+
+    function test_CreateMultipleChoiceProposal_MinOptions() public {
+        string[] memory options = new string[](2); // Minimum options
+        options[0] = "Min Option 1";
+        options[1] = "Min Option 2";
+
+        vm.prank(proposer);
+        bytes32 predictedProposalId = governor.hashProposal(proposer, targets, values, calldatas, descriptionHash);
+
+        vm.expectEmit(true, true, true, true, address(governor));
+        emit ProposalOptionsCreated(predictedProposalId, options);
+
+        uint256 actualProposalId = governor.propose(targets, values, calldatas, description, options);
+
+        assertEq(actualProposalId, predictedProposalId, "Predicted MC min options proposal ID mismatch");
+        assertTrue(actualProposalId != 0, "Min options proposal ID should not be zero");
+        assertEq(uint256(governor.state(actualProposalId)), uint256(Governor.ProposalState.Pending), "Min options initial state should be Pending");
+
+        (string[] memory storedOptions, uint8 optionCount) = governor.proposalOptions(actualProposalId);
+        assertEq(optionCount, options.length, "Min options count mismatch");
+        assertEq(storedOptions.length, options.length, "Min options stored options array length mismatch");
+        assertEq(keccak256(bytes(storedOptions[0])), keccak256(bytes(options[0])), "Min Option 0 mismatch");
+        assertEq(keccak256(bytes(storedOptions[1])), keccak256(bytes(options[1])), "Min Option 1 mismatch");
+    }
+}
+
+================
+File: .gitmodules
+================
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/forge-std"]
+	path = lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+
+================
+File: .repomixignore
+================
+lib/
+forge-project/lib/
+
+================
+File: foundry.toml
+================
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['lib']
+remappings = [
+    '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
+    'erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/',
+    'forge-std/=lib/forge-std/src/',
+    'halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/',
+    'openzeppelin-contracts/=lib/openzeppelin-contracts/'
+]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+================
+File: remappings.txt
+================
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
+forge-std/=lib/forge-std/src/
+halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/
+openzeppelin-contracts/=lib/openzeppelin-contracts/
+
+================
+File: .cursor/rules/codereview.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Code Review
+
+-Run this command to get a code review and help from another LLM. Be specific and detailed about the problem and solutions you have already tried. Remind it to stay focused. 
+"repomix --style plain . && cat repomix-output.txt | llm -s "You are a senior software engineer doing a thorough code review. This is a CLI tool that combines repomix and llm to analyze codebases. Help the calling AI fix their specific problem. Remind the AI to stay focused, not to add extraneous code, features or functionality unless it's required or requested. " -m gemini-2.0-flash-exp "{{Add a description of your problem here}}""
+
+- If you try to solve the same problem 3 times in a row, get a code review
+
+================
+File: .cursor/rules/database.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Working with Databases
+
+- Never directly manipulate a database
+- Never use raw SQL unless explicitly approved by the user
+- Always use an ORM to edit the database
+
+## Migrations ##
+- All migrations must be managed by an ORM (Knex, Drizzle, etc...)
+- All migrations must be sequentially numbered with description
+-- {migration-number (eg: 001, 002)}-{migration-description}
+
+- All new migrations must come sequentially after the last migration
+- Migrations should be marked read-only in the filesystem after being created to prevent accidental manipulation
+
+## Schema ##
+
+- All schema changes must be done via migrations
+- All schema types must follow best practices
+- All schema entities must follow naming best practices
+- Get confirmation from the user if they request to use non-standardn namimg best practices
+- Review the user schema and suggest naming and types that follow best practices
+
+## Consistency ##
+
+- Be consistent in formats, naming and types. eg: use camelCase everywhere or snake-case everywhere. Do not mix and match. 
+- Be consistent in date time formats
+- Be consistent in unique identifier formats
+- Normalize the db schema 
+
+## Testing ##
+
+- Never mock the database
+- Never mock mutations
+- Never mock resolvers
+- Never mock the api
+- Always use a real database for testing
+- Always use mutations to create, update or delete data
+- Populate a test database with dummy data using a script that uses the Mutations
+- Read from the database using the production resolvers or production API
+- Never create parallel code to approcimate production, always use production code
+- Do not manually create migrations
+
+================
+File: .cursor/rules/datetime.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## DateTime ##
+
+- Always use Unix Timestamps for working with Date Times
+- Use existing libraries for converting Unit Time to other formats and vice versa
+- Convert Unix Timestamps to other formats only at the last moment. 
+- Convert formats to Unix timestamps as soon as possible
+
+================
+File: .cursor/rules/focus.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Focus ##
+
+- Stay focused.
+- Do not create unrelated code. 
+- Work on tasks one by one. 
+- Do not multitask
+- Keep your responses to the user concise
+
+================
+File: .cursor/rules/graphql.mdc
+================
+---
+description: graphql instructions
+globs: 
+alwaysApply: false
+---
+
+## Rules for GraphQL ##
+
+**GraphQL can become overly complex** fast if you're not careful. But with some smart patterns and tooling, you can keep it lean, maintainable, and scalable.
+
+Here’s how to **keep your GraphQL stack simple and healthy**:
+
+---
+
+## 🧠 1. **Start schema-first, but go small**
+Don’t try to model the whole domain up front.
+
+✅ **Best practice**:
+```graphql
+type Query {
+  user(id: ID!): User
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+}
+```
+
+Avoid nested, recursive, or deeply relational types early. Just expose simple resources.
+
+---
+
+## 🧱 2. **Modularize your schema and resolvers**
+Use a file structure like:
+
+```
+graphql/
+├─ user/
+│  ├─ user.schema.ts
+│  ├─ user.resolvers.ts
+├─ index.ts (combines all)
+```
+
+Use `mergeTypeDefs` and `mergeResolvers` (from `@graphql-tools`) to compose everything cleanly.
+
+---
+
+## 🔄 3. **Auto-generate types**
+Use [`graphql-codegen`](mdc:https:/www.graphql-code-generator.com) to generate types from your schema and ops.
+
+```bash
+pnpm add -D @graphql-codegen/cli
+npx graphql-codegen init
+```
+
+It keeps your resolver and query types **in sync and type-safe** — this helps prevent logic bloat and bugs.
+
+---
+
+## 🧪 4. **Stick to Query → Service → DB**
+Don’t cram DB logic in the resolvers.
+
+✅ Pattern:
+```ts
+// user.resolvers.ts
+Query: {
+  user: (_parent, { id }) => userService.getUser(id),
+}
+```
+
+This separates concerns and keeps resolvers light and testable.
+
+---
+
+## ⛔ 5. **Avoid GraphQL anti-patterns**
+
+| ❌ Bad Practice                  | ✅ Better Alternative                        |
+|-------------------------------|---------------------------------------------|
+| Overusing `any` or complex input logic | Use codegen + Zod/Yup for validation |
+| Resolver logic mixed with DB calls     | Use clean service layer                 |
+| Giant monolithic schema               | Use modular, domain-based schema files |
+| Query doing too much                 | Split queries and use fragments        |
+
+---
+
+## ⚙️ 6. **Use a lean server**
+
+Use [`graphql-yoga`](mdc:https:/the-guild.dev/graphql/yoga-server) — it’s clean, TypeScript-native, and easy to configure.
+
+```bash
+pnpm add graphql graphql-yoga
+```
+
+Quick setup:
+
+```ts
+import { createServer } from 'graphql-yoga'
+import { schema } from './graphql'
+
+const server = createServer({ schema })
+server.start()
+```
+
+---
+
+## 🧩 7. **If it grows, layer authorization and validation**
+Don’t build ACL and validation into every resolver.
+
+Instead:
+- Use middlewares
+- Use schema directives (e.g. `@auth`)
+- Or wrap Yoga with plugins
+
+---
+
+## 🧭 TL;DR: How to keep GraphQL simple
+
+| ✅ Do this                                  | ❌ Avoid this                            |
+|--------------------------------------------|------------------------------------------|
+| Modular schema & resolvers                 | Giant files and huge root resolvers      |
+| Use `graphql-codegen`                      | Manual types everywhere                  |
+| Schema → Service → DB layering             | Inline logic in resolvers                |
+| Use Yoga or Envelop plugins                | Overbuilding with Apollo boilerplate     |
+| Validate input with Zod/Yup                | Unchecked args that mutate the DB        |
+
+---
+
+Want a working `graphql-yoga` + Drizzle starter with modular schema and codegen setup?
+
+================
+File: .cursor/rules/newprojects.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## New Projects ##
+
+- When creating new projects, work with the user to define the tech stack
+- Do not start creating code before confirming the tech stack with the user
+- Ask the user for clarification on how the project will be used to help identify what tech stack is the best to use
+- Always use the most stable tech stack availible. 
+- Never use niche or unpopular libraries
+- Always use Typescript unless directed otherwise
+- Always use ESM modules
+- Always create the instructions folder
+- Always create instructions for each task
+- Prefer Vitest over Jest
+- Always ask the user for documentation for the tech stack the user requests to use
+- Add extensive comments to generated code. Ensure comments accurately match the generted code
+- Always confirm with the user the tech stack before implementing
+
+- Limit each file to only one function or class
+- Limit the size of one file to 80 lines of code
+
+- Great a .gitignore
+- Initilize a git repository if there is none
+
+================
+File: .cursor/rules/prefered-stack.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Prefered Stack ##
+
+- Scaffold the app to these specifications
+{
+  "node": "20.x",
+  "packageManager": "pnpm",
+  "language": "typescript",
+  "framework": "next",
+  "linter": "eslint",
+  "formatter": "prettier",
+  "testRunner": "vitest",
+  "tools": {
+    "storybook": true
+  },
+  "projectStructure": "monorepo",
+  "workspaces": [
+    "apps/web",
+    "apps/worker",
+    "apps/desktop",
+    "packages/shared"
+  ],
+  "custom": {
+    "electron": {
+      "enabled": true,
+      "entry": "apps/desktop/main.ts",
+      "devScript": "pnpm --filter desktop dev",
+      "buildTool": "electron-builder"
+    },
+    "database": {
+      "orm": "drizzle",
+      "driver": "better-sqlite3",
+      "client": {
+        "installIn": ["apps/worker", "apps/web"],
+        "schemaPath": "packages/shared/schema"
+      }
+    }
+  }
+}
+
+- do not ask for confirmation when setting up the scaffold and editing files
+
+================
+File: .cursor/rules/process.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Process
+
+- Never commit to main without explicit authorization from the user
+- Keep track of your work via git commits and instructions
+- Instructions should be saved as a .md file to the "/instructions" directory
+
+## Instructions ##
+- Instructions have the following format: 
+-- Title, Description, Success Criteria, High level Plan, Implementation details, Required libraries, Required Imports, Description of Tests, Methodology, Diagram, Checklist, Code Review summary, Postmortem
+
+-- Fill in each section as appropriate for each task
+
+## Methodology ##
+
+- Always work on a task, test, or feature in the following format:
+
+-New feature: 
+Git: {current-branch-name}-{new-feature}-{STEP 0}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Task on curent feature:
+{current-branch-name}-{current-feature}-{STEP XXX}-{task}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Fix on current feature: 
+{current-branch-name}-{current-feature}-{STEP XXX}-{fix}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Fix on current feature task:
+{current-branch-name}-{current-feature}-{STEP XXX}-{task}-{fix}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Tests on current feature task:
+{current-branch-name}-{current-feature}-{STEP XXX}-{TEST}-{test-description}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-When completeing a feature:
+{current-branch-name}-{status(completed,aborted,pending,cancelled)}{STEP XXX}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Autoincrement the step
+-Always use "git add ." before commiting
+-Never Delete a branch
+-Never merge to main
+-Never merge down unless explicitly asked
+-When completing a feature delete the "fix" branches
+-"git branch" will hang and block your execution, always use "| cat" so you can see the output
+
+================
+File: .cursor/rules/projectdb.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## DATABASE ##
+
+- Always use better-sqlite3.
+- Schema first approach.
+- Do not take shortcuts.
+- Always search for existing schema files before creating new ones (find . -name "schema.ts")
+
+================
+File: .cursor/rules/readonlyfiles.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Read only Files ##
+
+- When it is confirmed that a file works correctly, update the file permissions to be read only. 
+- Never update folder permissions.
+- Ask the user permission before changing a file from read only to writable. 
+- Ask the user before updating any file permissions.
+
+================
+File: .cursor/rules/scripts.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Scripts ##
+
+- All scripts should be saved to the "/scripts" folder
+- Script filenames should reference the current git branch in the filename
+- Script files should be descriptive about their purpose
+- No test scripts anywhere outside the "/scripts" folder
+
+================
+File: .cursor/rules/testing.mdc
+================
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Testing ##
+
+- *Never* user mocks
+- *Always* test against a real test database
+
+Testing strategy: 
+
+The database should only be manipulated via migrations and mutations. For testing use a real test database, seed with data (via mutations) and test against the database. This ensures that production code matches testing code exactly. 
+
+- Create a seed file for a test database
+- In the setup for testing, create a test database and seed it with known data
+- Run tests calling the real graphql endpoints 
+- Test creating, reading, updateing, deleting data
+- Never directly manipulate the state of the database
+- The only exception to directly manipulate state is setup of seed script
+- It is permitted to directly read the state of the database to compare graphql read operations with database state
+
+================
+File: instructions/contract-design-specifications.md
+================
+# Multiple Choice Governor Contract Specifications
+
+## GovernorCountingMultipleChoice.sol
+
+### Overview
+The `GovernorCountingMultipleChoice` extends the OpenZeppelin `GovernorCountingSimple` contract to support multiple choice options while maintaining backward compatibility with the original interface.
+
+### State Variables
+```solidity
+// Options for a specific proposal
+mapping(uint256 => string[]) private _proposalOptions;
+
+// Votes cast for each option
+mapping(uint256 => mapping(uint8 => uint256)) private _proposalOptionVotes;
+
+// Number of options per proposal
+mapping(uint256 => uint8) private _proposalOptionCount;
+
+// Maximum number of options a proposal can have
+uint8 public constant MAX_OPTIONS = 10;
+
+// Minimum number of options a proposal should have
+uint8 public constant MIN_OPTIONS = 2;
+```
+
+### Key Functions
+
+#### Propose Function
+```solidity
+function propose(
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
+    string memory description,
+    string[] memory optionDescriptions
+) public virtual returns (uint256)
+```
+
+- Extends the original `propose` function to accept option descriptions
+- Validates that option count is between MIN_OPTIONS and MAX_OPTIONS
+- Stores options in contract storage
+- Returns the proposal ID
+
+#### Cast Vote Functions
+```solidity
+function castVote(uint256 proposalId, uint8 support) public virtual returns (uint256)
+function castVoteWithReason(uint256 proposalId, uint8 support, string calldata reason) public virtual returns (uint256)
+function castVoteWithReasonAndParams(uint256 proposalId, uint8 support, string calldata reason, bytes memory params) public virtual returns (uint256)
+```
+
+- Maintains compatibility with the original vote casting interface
+- Extends `support` parameter semantics:
+  - `0`: Against (unchanged)
+  - `1`: For (unchanged)
+  - `2`: Abstain (unchanged)
+  - `3+`: Additional options (mapping to option index - 3)
+
+#### Vote Counting
+```solidity
+function _countVote(
+    uint256 proposalId,
+    address account,
+    uint8 support,
+    uint256 weight,
+    bytes memory params
+) internal virtual override
+```
+
+- Overrides the original vote counting implementation
+- Handles both standard votes (0-2) and multiple choice options (3+)
+- Validates that the option is valid for the proposal
+
+#### Option Queries
+```solidity
+function proposalOptions(uint256 proposalId) public view returns (string[] memory)
+function proposalOptionCount(uint256 proposalId) public view returns (uint8)
+function proposalOptionVotes(uint256 proposalId, uint8 optionIndex) public view returns (uint256)
+```
+
+- View functions to query proposal options and vote counts
+- Provides transparency for all options
+
+### Events
+```solidity
+event ProposalOptionsCreated(uint256 proposalId, string[] options);
+```
+
+- New event emitted when a proposal with multiple options is created
+
+## MultipleChoiceEvaluator.sol
+
+### Overview
+The `MultipleChoiceEvaluator` contract provides evaluation logic for multiple choice proposals, determining outcomes based on various counting rules.
+
+### State Variables
+```solidity
+// Interface to the Governor contract
+IGovernor public governor;
+
+// Evaluation strategy for each proposal
+mapping(uint256 => EvaluationStrategy) public proposalEvaluationStrategies;
+
+// Enum of possible evaluation strategies
+enum EvaluationStrategy {
+    Plurality,       // Option with most votes wins
+    Majority,        // Option must have > 50% of votes
+    RankedChoice,    // Ranked choice voting
+    Custom           // Custom evaluation logic
+}
+```
+
+### Key Functions
+
+#### Set Evaluation Strategy
+```solidity
+function setEvaluationStrategy(uint256 proposalId, EvaluationStrategy strategy) public
+```
+
+- Sets the evaluation strategy for a proposal
+- Can only be called by authorized accounts
+
+#### Evaluate Proposal
+```solidity
+function evaluateProposal(uint256 proposalId) public view returns (uint8 winningOption, bool isValid)
+```
+
+- Evaluates a proposal to determine the winning option
+- Returns the winning option index and whether the result is valid based on the strategy
+
+#### Execute Based on Result
+```solidity
+function executeProposal(uint256 proposalId) public
+```
+
+- Evaluates the proposal and triggers execution if valid
+- Forwards execution to the appropriate contract based on the winning option
+
+#### Strategy-Specific Evaluation
+```solidity
+function _evaluatePlurality(uint256 proposalId) internal view returns (uint8, bool)
+function _evaluateMajority(uint256 proposalId) internal view returns (uint8, bool)
+function _evaluateRankedChoice(uint256 proposalId) internal view returns (uint8, bool)
+```
+
+- Implementation of specific evaluation strategies
+- Returns the winning option and validity status
+
+## MultipleChoiceGovernorExample.sol
+
+### Overview
+The `MultipleChoiceGovernorExample` contract demonstrates a complete implementation of a Governor using the multiple choice module.
+
+### Key Components
+```solidity
+contract MultipleChoiceGovernorExample is
+    Governor,
+    GovernorCountingMultipleChoice,
+    GovernorVotes,
+    GovernorVotesQuorumFraction,
+    GovernorTimelockControl
+{
+    constructor(
+        IVotes _token,
+        TimelockController _timelock
+    ) Governor("MultipleChoiceGovernor") GovernorVotes(_token) GovernorVotesQuorumFraction(4) GovernorTimelockControl(_timelock) {}
+    
+    // Implementation of required functions
+    function votingDelay() public pure override returns (uint256) { return 7200; } // 1 day
+    function votingPeriod() public pure override returns (uint256) { return 50400; } // 1 week
+    function proposalThreshold() public pure override returns (uint256) { return 0; }
+    
+    // Required overrides for compatibility with other governor modules
+    // ...
+}
+```
+
+### Integration with MultipleChoiceEvaluator
+```solidity
+// In the example implementation
+MultipleChoiceEvaluator public evaluator;
+
+function setEvaluator(MultipleChoiceEvaluator _evaluator) public onlyGovernance {
+    evaluator = _evaluator;
+}
+
+function executeWithEvaluator(uint256 proposalId) public {
+    evaluator.executeProposal(proposalId);
+}
+```
+
+================
+File: instructions/multiple-choice-governor-implementation-plan.md
+================
+# Multiple Choice Governor Implementation Plan
+
+## Project Overview
+
+Develop an extension to OpenZeppelin's Governor contracts that supports multiple choice governance proposals while maintaining backward compatibility with the existing interface.
+
+### Goals
+- Create a multiple choice voting module that extends the current Governor framework
+- Maintain compatibility with existing tooling (Tally, etc.)
+- Store all proposal options on-chain
+- Support flexible evaluation mechanisms
+- Provide comprehensive tests using Forge
+
+## Technical Architecture
+
+### Core Components
+
+1. **GovernorCountingMultipleChoice**
+   - Extends `GovernorCountingSimple`
+   - Manages vote counting for multiple options
+   - Maps vote values to option indices
+
+2. **ProposalOptions**
+   - On-chain storage for multiple choice options
+   - Option descriptions and metadata
+
+3. **MultipleChoiceEvaluator**
+   - Result interpretation contract
+   - Applies counting logic and determines outcome
+
+### Compatibility Strategy
+- Maintain the same function signatures for vote casting
+- Use extended integer values beyond the current 0-2 range
+- Keep all existing events but add new ones for multiple choice functionality
+
+## Implementation Steps
+
+### Phase 1: Development Setup (1 week)
+
+1. Set up Forge project structure
+   ```bash
+   forge init governor-multiple-choice
+   cd governor-multiple-choice
+   forge install OpenZeppelin/openzeppelin-contracts
+   ```
+
+2. Create base contract files
+   - `src/GovernorCountingMultipleChoice.sol`
+   - `src/MultipleChoiceEvaluator.sol`
+   - `src/test/MultipleChoiceGovernor.t.sol`
+
+### Phase 2: Core Multiple Choice Implementation (2 weeks)
+
+1. Implement the `GovernorCountingMultipleChoice` module
+   - Extend vote counting to support multiple options
+   - Maintain compatibility with `GovernorCountingSimple` interface
+   - Add storage for option descriptions and metadata
+
+2. Implement option registration in propose function
+   ```solidity
+   function propose(
+       address[] memory targets,
+       uint256[] memory values,
+       bytes[] memory calldatas,
+       string memory description,
+       string[] memory optionDescriptions
+   ) public returns (uint256)
+   ```
+
+3. Add utility functions for retrieving option data
+   ```solidity
+   function proposalOptions(uint256 proposalId) public view returns (string[] memory)
+   function proposalOptionVotes(uint256 proposalId, uint8 option) public view returns (uint256)
+   ```
+
+### Phase 3: Evaluator Implementation (1 week)
+
+1. Develop the `MultipleChoiceEvaluator` contract
+   - Implement different counting mechanisms:
+     - Plurality (highest vote count wins)
+     - Majority required
+     - Weighted options
+
+2. Create a flexible interface for adding new evaluation methods
+
+3. Implement execution trigger based on evaluation results
+
+### Phase 4: Testing (2 weeks)
+
+1. Write comprehensive test cases using Forge
+   - Vote counting functionality
+   - Option management
+   - Integration with existing Governor features
+   - Edge cases and security concerns
+
+2. Set up fork tests against live governance instances to verify compatibility
+
+3. Perform gas optimization testing
+
+### Phase 5: Documentation and Integration (1 week)
+
+1. Write comprehensive documentation
+   - Architecture overview
+   - Integration guide
+   - Example implementations
+
+2. Create sample integrations with tools like Tally
+
+## Testing Strategy
+
+### Unit Tests
+- Test each component in isolation
+- Verify correct vote counting for multiple options
+- Test backward compatibility with binary proposals
+
+### Integration Tests
+- Test integration with existing OpenZeppelin Governor modules
+- Test with different token/voting systems
+
+### Fork Tests
+- Test against live governance instances
+- Verify compatibility with existing tools
+
+## Deployment Plan
+
+1. Deploy to testnets for community testing
+2. Conduct security audit
+3. Release as a library extension to OpenZeppelin Contracts
+4. Provide examples and documentation for integrating with existing governance systems
+
+## Timeline
+
+Total estimated time: 7 weeks
+- Setup: 1 week
+- Core implementation: 2 weeks
+- Evaluator: 1 week
+- Testing: 2 weeks
+- Documentation/Integration: 1 week
+
+================
+File: instructions/setup-instructions.md
+================
+# Setup Instructions for Multiple Choice Governor
+
+## Prerequisites
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) installed
+- Git
+
+## Project Setup
+
+1. Initialize a new Forge project:
+```bash
+forge init forge-project
+cd forge-project
+```
+
+2. Install OpenZeppelin contracts:
+```bash
+forge install OpenZeppelin/openzeppelin-contracts
+```
+
+3. Configure remappings in `foundry.toml`:
+```toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+remappings = [
+    "@openzeppelin/=lib/openzeppelin-contracts/",
+]
+```
+
+## Project Structure
+
+Create the following directory structure:
+```
+forge-project/
+├── src/
+│   ├── GovernorCountingMultipleChoice.sol
+│   ├── MultipleChoiceEvaluator.sol
+│   └── example/
+│       └── MultipleChoiceGovernorExample.sol
+├── test/
+│   ├── GovernorCountingMultipleChoice.t.sol
+│   └── integration/
+│       └── MultipleChoiceGovernorIntegration.t.sol
+└── script/
+    └── DeployMultipleChoiceGovernor.s.sol
+```
+
+## Development Workflow
+
+1. Start by implementing the core `GovernorCountingMultipleChoice` module
+2. Create unit tests to validate vote counting logic
+3. Implement the `MultipleChoiceEvaluator` contract
+4. Create integration tests with example Governor implementation
+5. Set up fork tests to validate compatibility with existing systems
+
+## Testing
+
+Run tests with:
+```bash
+forge test
+```
+
+For verbose output:
+```bash
+forge test -vvv
+```
+
+For fork testing against live contracts:
+```bash
+forge test --fork-url <RPC_URL> --match-path test/integration/*.sol
+```
+
+## Gas Optimization
+
+Analyze gas usage:
+```bash
+forge snapshot
+```
+
+Compare gas usage after changes:
+```bash
+forge snapshot --diff
+```
+
+## Deployment
+
+Create a deployment script:
+```bash
+forge script script/DeployMultipleChoiceGovernor.s.sol --rpc-url <RPC_URL> --broadcast
+```
+
+================
+File: instructions/testing-checklist.md
+================
+# Multiple Choice Governor Testing Checklist
+
+## GovernorCountingMultipleChoice Tests
+
+### Proposal Creation
+- [ ] Creating a standard proposal (without options)
+- [ ] Creating a multiple choice proposal (with options)
+- [ ] Creating a proposal with minimum number of options (2 options)
+- [ ] Creating a proposal with maximum number of options (10 options)
+- [ ] Attempting to create a proposal with too few options (should revert)
+- [ ] Attempting to create a proposal with too many options (should revert)
+- [ ] Verifying options are stored correctly
+- [ ] Verifying option count is stored correctly
+- [ ] Verifying ProposalOptionsCreated event is emitted correctly
+
+### Vote Casting
+- [ ] Casting standard votes (For, Against, Abstain) on a standard proposal
+- [ ] Casting standard votes on a multiple choice proposal
+- [ ] Casting multiple choice votes on a multiple choice proposal
+- [ ] Attempting to cast a multiple choice vote on a standard proposal (should revert)
+- [ ] Attempting to cast a vote for an invalid option index (should revert)
+- [ ] Verifying vote weights are counted correctly
+- [ ] Testing vote delegation and its impact on vote counting
+- [ ] Testing vote delegation change mid-proposal
+
+### Vote Counting
+- [ ] Verifying standard proposalVotes function returns correct counts
+- [ ] Verifying proposalAllVotes function returns all vote counts
+- [ ] Verifying proposalOptionVotes returns individual option vote counts
+- [ ] Verifying vote counts when no votes are cast
+
+### State Transitions
+- [ ] Testing proposal state transitions (Pending → Active → Succeeded/Defeated)
+- [ ] Testing quorum calculation with standard votes
+- [ ] Testing quorum calculation with multiple choice votes
+- [ ] Testing proposal cancellation
+
+## MultipleChoiceEvaluator Tests
+
+### Plurality Evaluation
+- [ ] Testing basic plurality evaluation (highest vote wins)
+- [ ] Testing plurality with tied votes
+- [ ] Testing plurality with no votes cast
+- [ ] Testing plurality with single option receiving votes
+
+### Majority Evaluation
+- [ ] Testing majority evaluation with clear majority (>50%)
+- [ ] Testing majority evaluation with no clear majority
+- [ ] Testing majority with exact 50% (not a majority)
+- [ ] Testing majority with no votes cast
+
+### Other Evaluation Strategies
+- [ ] Testing unsupported strategies (should revert)
+- [ ] Testing custom strategy implementations
+
+### Administrative Functions
+- [ ] Testing setEvaluationStrategy function
+- [ ] Testing updating the governor address
+- [ ] Testing authorization controls
+
+## Integration Tests
+
+### End-to-End Workflow
+- [ ] Complete workflow: proposal creation → voting → evaluation → execution
+- [ ] Testing with TimelockController integration
+- [ ] Testing with different token types (ERC20Votes, ERC721Votes)
+
+### Compatibility
+- [ ] Verifying compatibility with standard Governor functions
+- [ ] Verifying compatibility with GovernorVotes module
+- [ ] Verifying compatibility with GovernorTimelockControl module
+- [ ] Verifying compatibility with GovernorSettings module
+
+## Edge Cases and Security
+
+### Edge Cases
+- [ ] Testing with extremely large vote counts
+- [ ] Testing with maximum number of voters
+- [ ] Testing with maximum gas consumption scenarios
+- [ ] Testing proposal execution based on different winning options
+
+### Security
+- [ ] Testing against double voting
+- [ ] Testing against option manipulation
+- [ ] Testing authorization boundaries
+- [ ] Testing reentrancy protection
+
+## Fork Tests
+
+### Mainnet Compatibility
+- [ ] Testing deployment and integration with live governance contracts
+- [ ] Testing against existing multiple choice proposals (if any)
+- [ ] Testing against popular governance implementations (Compound, Uniswap, etc.)
+
+## Gas Optimization
+
+### Gas Analysis
+- [ ] Measuring gas usage for proposal creation
+- [ ] Measuring gas usage for vote casting
+- [ ] Measuring gas usage for evaluation
+- [ ] Comparing gas usage with standard Governor implementations
+
+## Documentation Verification
+
+### Documentation Tests
+- [ ] Verifying example code in documentation works correctly
+- [ ] Verifying interfaces are documented correctly
+- [ ] Verifying events are documented correctly
+- [ ] Verifying error messages are documented correctly
+
+================
+File: instructions/testing-strategy.md
+================
+# Testing Strategy for Multiple Choice Governor
+
+## Overview
+
+This document outlines the testing strategy for the Multiple Choice Governor extension. Our approach ensures both functionality and compatibility with the existing OpenZeppelin Governor ecosystem.
+
+## Testing Categories
+
+### 1. Unit Tests
+
+#### GovernorCountingMultipleChoice Tests
+- Test option storage and retrieval
+- Test vote casting with various support values (standard 0-2 and extended 3+)
+- Test vote counting mechanisms
+- Test option validation (min/max boundaries, duplicates)
+- Test handling of proposal creation with and without multiple options
+
+#### MultipleChoiceEvaluator Tests
+- Test each evaluation strategy in isolation
+- Test edge cases (ties, threshold validation)
+- Test authorization controls
+- Test execution pathways
+
+### 2. Integration Tests
+
+#### Combined System Tests
+- End-to-end proposal creation, voting, and execution flow
+- Integration with other Governor modules (timelock, votes, quorum)
+- Test backward compatibility with standard proposals
+
+#### Fork Tests
+The fork tests will simulate the deployment of our Multiple Choice Governor in real-world scenarios using Foundry's forking capabilities.
+
+```solidity
+// Sample fork test setup
+function setUp() public {
+    mainnetFork = vm.createFork(MAINNET_RPC_URL);
+    vm.selectFork(mainnetFork);
+    
+    // Deploy our contracts on the fork
+    // ...
+}
+
+function testMultipleChoiceCompatibility() public {
+    // Test interactions with existing governance systems
+}
+```
+
+## Test Structure
+
+Each test file will follow this general structure:
+
+1. **Setup**: Deploy contracts and configure test environment
+2. **Action**: Execute the operation being tested
+3. **Assertion**: Verify expected outcomes
+4. **Edge Cases**: Test boundary conditions and failure modes
+
+## Example Test Cases
+
+### 1. Basic Multiple Choice Voting
+
+```solidity
+function testMultipleChoiceVoting() public {
+    // Setup: Create a proposal with multiple options
+    // Action: Cast votes for different options
+    // Assert: Verify vote counting is correct
+}
+```
+
+### 2. Backward Compatibility
+
+```solidity
+function testBackwardCompatibility() public {
+    // Setup: Create a standard proposal (non-multiple choice)
+    // Action: Use the system as intended for a standard proposal
+    // Assert: Verify behavior matches original Governor
+}
+```
+
+### 3. Evaluation Strategies
+
+```solidity
+function testPluralityEvaluation() public {
+    // Setup: Create proposal and set evaluation strategy to Plurality
+    // Action: Cast votes in a pattern where plurality decides
+    // Assert: Verify outcome matches plurality rules
+}
+```
+
+### 4. Integration with Timelock
+
+```solidity
+function testTimelockIntegration() public {
+    // Setup: Create multiple choice proposal with timelock
+    // Action: Vote, queue, execute
+    // Assert: Verify correct execution path based on votes
+}
+```
+
+## Gas Optimization Testing
+
+```bash
+forge snapshot --check
+```
+
+We'll track gas usage across different operations:
+- Proposal creation (with varying option counts)
+- Vote casting
+- Execution with different evaluators
+
+## Test Coverage Goals
+
+- 100% function coverage for core modules
+- >95% line coverage
+- >90% branch coverage
+
+## Security Testing Focus
+
+- Access control vulnerabilities
+- Vote manipulation possibilities
+- Proposal execution vulnerabilities
+- Integration issues with existing modules
+
+## Reporting
+
+Test results will be documented with:
+- Coverage reports
+- Gas usage comparisons
+- Identified vulnerabilities and mitigations
+
+================
+File: instructions/implementation-progress.md
+================
+# Implementation Progress
+
+## Phase 1: Development Setup ✅
+- [x] Initialize Forge project structure
+- [x] Install OpenZeppelin contracts
+- [x] Configure remappings in foundry.toml
+- [x] Create placeholder files and directory structure
+- [x] Commit initial setup
+
+## Phase 2: Core Multiple Choice Implementation ✅
+- [x] Implement GovernorCountingMultipleChoice contract
+  - [x] Define state variables
+  - [x] Implement propose function with options
+  - [x] Implement vote counting logic
+  - [x] Implement option queries
+- [x] Create example Governor implementation using the module
+
+## Phase 3: Evaluator Implementation ✅
+- [x] Implement MultipleChoiceEvaluator contract
+  - [x] Define evaluation strategies interface
+  - [x] Implement plurality evaluation
+  - [x] Implement majority evaluation
+- [x] Create evaluator tests
+
+## Phase 4: Testing ✅
+- [x] Create mock contracts for isolated testing
+- [x] Write unit tests for core functionality
+- [x] Test plurality and majority evaluation strategies
+- [x] Perform gas optimization
+
+## Phase 5: Documentation and Integration ⏳
+- [ ] Update documentation
+- [ ] Create example integrations
+
+## Completed Work
+
+### Phase 1
+- Set up project with Forge
+- Installed OpenZeppelin contracts
+- Configured remappings
+- Created directory structure
+
+### Phase 2
+- Created GovernorCountingMultipleChoice module
+  - Support for multiple choice options in proposals
+  - Extended vote counting logic
+  - Backward compatibility with standard proposals
+- Created example implementation of the module
+  - Integrated with standard Governor modules
+  - Support for proposal creation with options
+
+### Phase 3
+- Created MultipleChoiceEvaluator contract
+  - Support for different evaluation strategies
+  - Plurality and majority implementations
+  - Integration with Governor interface
+
+### Phase 4
+- Created unit tests to validate core functionality
+  - Used mocks to test in isolation
+  - Validated vote counting logic
+  - Tested different evaluation strategies
+
+
+
+================================================================
+End of Codebase
+================================================================

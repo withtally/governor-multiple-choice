@@ -3,37 +3,38 @@
 ## GovernorCountingMultipleChoice Tests
 
 ### Proposal Creation
-- [ ] Creating a standard proposal (without options)
-- [ ] Creating a multiple choice proposal (with options)
-- [ ] Creating a proposal with minimum number of options (2 options)
-- [ ] Creating a proposal with maximum number of options (10 options)
-- [ ] Attempting to create a proposal with too few options (should revert)
-- [ ] Attempting to create a proposal with too many options (should revert)
-- [ ] Verifying options are stored correctly
-- [ ] Verifying option count is stored correctly
+- [x] Creating a standard proposal (without options)
+- [x] Creating a multiple choice proposal (with options)
+- [x] Creating a proposal with minimum number of options (2 options)
+- [x] Creating a proposal with maximum number of options (10 options)
+- [x] Attempting to create a proposal with too few options (should revert)
+- [x] Attempting to create a proposal with too many options (should revert)
+- [x] Verifying options are stored correctly
+- [x] Verifying option count is stored correctly
 - [ ] Verifying ProposalOptionsCreated event is emitted correctly
 
 ### Vote Casting
-- [ ] Casting standard votes (For, Against, Abstain) on a standard proposal
+- [x] Casting standard votes (For, Against, Abstain) on a standard proposal
 - [ ] Casting standard votes on a multiple choice proposal
-- [ ] Casting multiple choice votes on a multiple choice proposal
-- [ ] Attempting to cast a multiple choice vote on a standard proposal (should revert)
-- [ ] Attempting to cast a vote for an invalid option index (should revert)
-- [ ] Verifying vote weights are counted correctly
-- [ ] Testing vote delegation and its impact on vote counting
-- [ ] Testing vote delegation change mid-proposal
+- [x] Casting multiple choice votes on a multiple choice proposal
+- [x] Attempting to cast a multiple choice vote on a standard proposal (should revert)
+- [x] Attempting to cast a vote for an invalid option index (should revert)
+- [x] Verifying vote weights are counted correctly
+- [x] Testing vote delegation and its impact on vote counting
+- [x] Testing vote delegation change mid-proposal
 
 ### Vote Counting
-- [ ] Verifying standard proposalVotes function returns correct counts
+- [x] Verifying standard proposalVotes function returns correct counts
 - [ ] Verifying proposalAllVotes function returns all vote counts
-- [ ] Verifying proposalOptionVotes returns individual option vote counts
+- [x] Verifying proposalOptionVotes returns individual option vote counts
 - [ ] Verifying vote counts when no votes are cast
 
 ### State Transitions
-- [ ] Testing proposal state transitions (Pending → Active → Succeeded/Defeated)
-- [ ] Testing quorum calculation with standard votes
-- [ ] Testing quorum calculation with multiple choice votes
+- [x] Testing proposal state transitions (Pending → Active → Succeeded/Defeated)
+- [x] Testing quorum calculation with standard votes
+- [x] Testing quorum calculation with multiple choice votes
 - [ ] Testing proposal cancellation
+- [x] Testing reversion when voting after proposal ends
 
 ## MultipleChoiceEvaluator Tests
 
