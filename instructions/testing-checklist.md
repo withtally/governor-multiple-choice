@@ -11,7 +11,9 @@
 - [x] Attempting to create a proposal with too many options (should revert)
 - [x] Verifying options are stored correctly
 - [x] Verifying option count is stored correctly
-- [ ] Verifying ProposalOptionsCreated event is emitted correctly
+- [x] Verifying ProposalOptionsCreated event is emitted correctly
+  - *Note: Current test only checks emission, not exact proposalId topic or options data. Consider using `vm.recordLogs` for a more robust check later.*
+- [x] Verifying ProposalCreated event is emitted correctly (Standard & MC)
 
 ### Vote Casting
 - [x] Casting standard votes (For, Against, Abstain) on a standard proposal
@@ -22,10 +24,12 @@
 - [x] Verifying vote weights are counted correctly
 - [x] Testing vote delegation and its impact on vote counting
 - [x] Testing vote delegation change mid-proposal
+- [x] Verifying VoteCast event is emitted correctly (Standard)
+- [x] Verifying VoteCastWithParams event is emitted correctly (Multiple Choice)
 
 ### Vote Counting
 - [x] Verifying standard proposalVotes function returns correct counts
-- [ ] Verifying proposalAllVotes function returns all vote counts
+- [x] Verifying proposalAllVotes function returns all vote counts
 - [x] Verifying proposalOptionVotes returns individual option vote counts
 - [x] Verifying vote counts when no votes are cast
 
