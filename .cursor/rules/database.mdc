@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Working with Databases
+
+- Never directly manipulate a database
+- Never use raw SQL unless explicitly approved by the user
+- Always use an ORM to edit the database
+
+## Migrations ##
+- All migrations must be managed by an ORM (Knex, Drizzle, etc...)
+- All migrations must be sequentially numbered with description
+-- {migration-number (eg: 001, 002)}-{migration-description}
+
+- All new migrations must come sequentially after the last migration
+- Migrations should be marked read-only in the filesystem after being created to prevent accidental manipulation
+
+## Schema ##
+
+- All schema changes must be done via migrations
+- All schema types must follow best practices
+- All schema entities must follow naming best practices
+- Get confirmation from the user if they request to use non-standardn namimg best practices
+- Review the user schema and suggest naming and types that follow best practices
+
+## Consistency ##
+
+- Be consistent in formats, naming and types. eg: use camelCase everywhere or snake-case everywhere. Do not mix and match. 
+- Be consistent in date time formats
+- Be consistent in unique identifier formats
+- Normalize the db schema 
+
+## Testing ##
+
+- Never mock the database
+- Never mock mutations
+- Never mock resolvers
+- Never mock the api
+- Always use a real database for testing
+- Always use mutations to create, update or delete data
+- Populate a test database with dummy data using a script that uses the Mutations
+- Read from the database using the production resolvers or production API
+- Never create parallel code to approcimate production, always use production code
+- Do not manually create migrations
+
+

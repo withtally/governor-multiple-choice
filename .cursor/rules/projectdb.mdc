@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## DATABASE ##
+
+- Always use better-sqlite3.
+- Schema first approach.
+- Do not take shortcuts.
+- Always search for existing schema files before creating new ones (find . -name "schema.ts")

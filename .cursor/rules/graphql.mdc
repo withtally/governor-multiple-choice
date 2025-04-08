@@ -1,0 +1,130 @@
+---
+description: graphql instructions
+globs: 
+alwaysApply: false
+---
+
+## Rules for GraphQL ##
+
+**GraphQL can become overly complex** fast if you're not careful. But with some smart patterns and tooling, you can keep it lean, maintainable, and scalable.
+
+Here’s how to **keep your GraphQL stack simple and healthy**:
+
+---
+
+## 🧠 1. **Start schema-first, but go small**
+Don’t try to model the whole domain up front.
+
+✅ **Best practice**:
+```graphql
+type Query {
+  user(id: ID!): User
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+}
+```
+
+Avoid nested, recursive, or deeply relational types early. Just expose simple resources.
+
+---
+
+## 🧱 2. **Modularize your schema and resolvers**
+Use a file structure like:
+
+```
+graphql/
+├─ user/
+│  ├─ user.schema.ts
+│  ├─ user.resolvers.ts
+├─ index.ts (combines all)
+```
+
+Use `mergeTypeDefs` and `mergeResolvers` (from `@graphql-tools`) to compose everything cleanly.
+
+---
+
+## 🔄 3. **Auto-generate types**
+Use [`graphql-codegen`](mdc:https:/www.graphql-code-generator.com) to generate types from your schema and ops.
+
+```bash
+pnpm add -D @graphql-codegen/cli
+npx graphql-codegen init
+```
+
+It keeps your resolver and query types **in sync and type-safe** — this helps prevent logic bloat and bugs.
+
+---
+
+## 🧪 4. **Stick to Query → Service → DB**
+Don’t cram DB logic in the resolvers.
+
+✅ Pattern:
+```ts
+// user.resolvers.ts
+Query: {
+  user: (_parent, { id }) => userService.getUser(id),
+}
+```
+
+This separates concerns and keeps resolvers light and testable.
+
+---
+
+## ⛔ 5. **Avoid GraphQL anti-patterns**
+
+| ❌ Bad Practice                  | ✅ Better Alternative                        |
+|-------------------------------|---------------------------------------------|
+| Overusing `any` or complex input logic | Use codegen + Zod/Yup for validation |
+| Resolver logic mixed with DB calls     | Use clean service layer                 |
+| Giant monolithic schema               | Use modular, domain-based schema files |
+| Query doing too much                 | Split queries and use fragments        |
+
+---
+
+## ⚙️ 6. **Use a lean server**
+
+Use [`graphql-yoga`](mdc:https:/the-guild.dev/graphql/yoga-server) — it’s clean, TypeScript-native, and easy to configure.
+
+```bash
+pnpm add graphql graphql-yoga
+```
+
+Quick setup:
+
+```ts
+import { createServer } from 'graphql-yoga'
+import { schema } from './graphql'
+
+const server = createServer({ schema })
+server.start()
+```
+
+---
+
+## 🧩 7. **If it grows, layer authorization and validation**
+Don’t build ACL and validation into every resolver.
+
+Instead:
+- Use middlewares
+- Use schema directives (e.g. `@auth`)
+- Or wrap Yoga with plugins
+
+---
+
+## 🧭 TL;DR: How to keep GraphQL simple
+
+| ✅ Do this                                  | ❌ Avoid this                            |
+|--------------------------------------------|------------------------------------------|
+| Modular schema & resolvers                 | Giant files and huge root resolvers      |
+| Use `graphql-codegen`                      | Manual types everywhere                  |
+| Schema → Service → DB layering             | Inline logic in resolvers                |
+| Use Yoga or Envelop plugins                | Overbuilding with Apollo boilerplate     |
+| Validate input with Zod/Yup                | Unchecked args that mutate the DB        |
+
+---
+
+Want a working `graphql-yoga` + Drizzle starter with modular schema and codegen setup?

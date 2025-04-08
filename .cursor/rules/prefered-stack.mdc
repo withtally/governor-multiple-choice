@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Prefered Stack ##
+
+- Scaffold the app to these specifications
+{
+  "node": "20.x",
+  "packageManager": "pnpm",
+  "language": "typescript",
+  "framework": "next",
+  "linter": "eslint",
+  "formatter": "prettier",
+  "testRunner": "vitest",
+  "tools": {
+    "storybook": true
+  },
+  "projectStructure": "monorepo",
+  "workspaces": [
+    "apps/web",
+    "apps/worker",
+    "apps/desktop",
+    "packages/shared"
+  ],
+  "custom": {
+    "electron": {
+      "enabled": true,
+      "entry": "apps/desktop/main.ts",
+      "devScript": "pnpm --filter desktop dev",
+      "buildTool": "electron-builder"
+    },
+    "database": {
+      "orm": "drizzle",
+      "driver": "better-sqlite3",
+      "client": {
+        "installIn": ["apps/worker", "apps/web"],
+        "schemaPath": "packages/shared/schema"
+      }
+    }
+  }
+}
+
+- do not ask for confirmation when setting up the scaffold and editing files
+
+
+

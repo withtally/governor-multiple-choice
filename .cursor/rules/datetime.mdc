@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## DateTime ##
+
+- Always use Unix Timestamps for working with Date Times
+- Use existing libraries for converting Unit Time to other formats and vice versa
+- Convert Unix Timestamps to other formats only at the last moment. 
+- Convert formats to Unix timestamps as soon as possible

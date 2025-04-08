@@ -1,0 +1,29 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## New Projects ##
+
+- When creating new projects, work with the user to define the tech stack
+- Do not start creating code before confirming the tech stack with the user
+- Ask the user for clarification on how the project will be used to help identify what tech stack is the best to use
+- Always use the most stable tech stack availible. 
+- Never use niche or unpopular libraries
+- Always use Typescript unless directed otherwise
+- Always use ESM modules
+- Always create the instructions folder
+- Always create instructions for each task
+- Prefer Vitest over Jest
+- Always ask the user for documentation for the tech stack the user requests to use
+- Add extensive comments to generated code. Ensure comments accurately match the generted code
+- Always confirm with the user the tech stack before implementing
+
+- Limit each file to only one function or class
+- Limit the size of one file to 80 lines of code
+
+- Great a .gitignore
+- Initilize a git repository if there is none
+
+

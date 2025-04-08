@@ -1,0 +1,59 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Process
+
+- Never commit to main without explicit authorization from the user
+- Keep track of your work via git commits and instructions
+- Instructions should be saved as a .md file to the "/instructions" directory
+
+## Instructions ##
+- Instructions have the following format: 
+-- Title, Description, Success Criteria, High level Plan, Implementation details, Required libraries, Required Imports, Description of Tests, Methodology, Diagram, Checklist, Code Review summary, Postmortem
+
+-- Fill in each section as appropriate for each task
+
+## Methodology ##
+
+- Always work on a task, test, or feature in the following format:
+
+-New feature: 
+Git: {current-branch-name}-{new-feature}-{STEP 0}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Task on curent feature:
+{current-branch-name}-{current-feature}-{STEP XXX}-{task}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Fix on current feature: 
+{current-branch-name}-{current-feature}-{STEP XXX}-{fix}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Fix on current feature task:
+{current-branch-name}-{current-feature}-{STEP XXX}-{task}-{fix}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Tests on current feature task:
+{current-branch-name}-{current-feature}-{STEP XXX}-{TEST}-{test-description}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-When completeing a feature:
+{current-branch-name}-{status(completed,aborted,pending,cancelled)}{STEP XXX}
+Instructions: Create a new .md file in the "/instructions" directory with the same filename as the git branch. 
+
+-Autoincrement the step
+-Always use "git add ." before commiting
+-Never Delete a branch
+-Never merge to main
+-Never merge down unless explicitly asked
+-When completing a feature delete the "fix" branches
+-"git branch" will hang and block your execution, always use "| cat" so you can see the output
+
+
+
+
+
+

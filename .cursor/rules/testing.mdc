@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Testing ##
+
+- *Never* user mocks
+- *Always* test against a real test database
+
+Testing strategy: 
+
+The database should only be manipulated via migrations and mutations. For testing use a real test database, seed with data (via mutations) and test against the database. This ensures that production code matches testing code exactly. 
+
+- Create a seed file for a test database
+- In the setup for testing, create a test database and seed it with known data
+- Run tests calling the real graphql endpoints 
+- Test creating, reading, updateing, deleting data
+- Never directly manipulate the state of the database
+- The only exception to directly manipulate state is setup of seed script
+- It is permitted to directly read the state of the database to compare graphql read operations with database state

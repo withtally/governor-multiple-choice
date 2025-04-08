@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Scripts ##
+
+- All scripts should be saved to the "/scripts" folder
+- Script filenames should reference the current git branch in the filename
+- Script files should be descriptive about their purpose
+- No test scripts anywhere outside the "/scripts" folder
+
+

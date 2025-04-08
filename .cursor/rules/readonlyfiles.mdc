@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Read only Files ##
+
+- When it is confirmed that a file works correctly, update the file permissions to be read only. 
+- Never update folder permissions.
+- Ask the user permission before changing a file from read only to writable. 
+- Ask the user before updating any file permissions.
