@@ -6,6 +6,7 @@ import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingMultipleChoice} from "./GovernorCountingMultipleChoice.sol"; // For accessing proposalOptions
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title FundingDistributor
@@ -108,10 +109,12 @@ contract FundingDistributor is Ownable {
      *                                e.g., `recipientsByOptionIndex[0]` is the recipient for option 0.
      */
     function distribute(uint256 proposalId, uint8 topN, address[] memory recipientsByOptionIndex) external {
+        console.log("Distribute called. ProposalId:", proposalId);
         // 1. Validate caller is timelock
         if (msg.sender != timelock) {
             revert FundingDistributor__UnauthorizedCaller(msg.sender);
         }
+        console.log("Caller validation passed.");
 
         // 2. Validate proposal state (Succeeded or Executed)
         IGovernor.ProposalState currentState = governorCM.state(proposalId);
@@ -120,6 +123,7 @@ contract FundingDistributor is Ownable {
         if (currentState != IGovernor.ProposalState.Succeeded && currentState != IGovernor.ProposalState.Executed) {
             revert FundingDistributor__InvalidProposalState(proposalId, currentState);
         }
+        console.log("Proposal state validation passed.");
 
         // 3. Fetch proposal options and validate recipientsByOptionIndex length
         (, uint8 optionCount) = governorCM.proposalOptions(proposalId);
@@ -128,17 +132,20 @@ contract FundingDistributor is Ownable {
                 proposalId, optionCount, recipientsByOptionIndex.length
             );
         }
+        console.log("Recipient array length validation passed.");
 
         // 4. Validate topN
         if (topN == 0 || topN > optionCount) {
             revert FundingDistributor__InvalidTopN(topN, optionCount);
         }
+        console.log("topN validation passed.");
 
         // 5. Fetch proposal option votes
         OptionVote[] memory optionVotes = new OptionVote[](optionCount);
         for (uint8 i = 0; i < optionCount; i++) {
             optionVotes[i] = OptionVote({index: i, votes: governorCM.proposalOptionVotes(proposalId, i)});
         }
+        console.log("Fetched option votes.");
 
         // 6. Identify top N winners (handle ties)
         // Simple bubble sort (descending) - acceptable for small option counts (max 10)
@@ -184,30 +191,38 @@ contract FundingDistributor is Ownable {
         if (winnerCount == 0) {
             revert FundingDistributor__NoWinners(proposalId);
         }
+        console.log("Winner check passed.");
 
         // 8. Calculate amount per recipient
         uint256 totalBalance = address(this).balance;
         uint256 amountPerRecipient = totalBalance / winnerCount;
+        console.log("Calculated amount per recipient:", amountPerRecipient);
 
         // Ensure there's something to distribute
         if (amountPerRecipient == 0) {
-            // Can happen if balance is less than winnerCount. Could revert or just emit 0 amount.
-            // Let's emit 0 amount for simplicity.
+            console.log("Amount per recipient is 0, emitting and returning.");
             emit FundsDistributed(proposalId, winningRecipients, 0);
             return;
         }
 
         // 9. Distribute funds (check transfer success)
+        console.log("Starting fund distribution loop.");
         for (uint256 i = 0; i < winnerCount; i++) {
             address recipient = winningRecipients[i];
-            (bool success,) = payable(recipient).call{value: amountPerRecipient}("");
+            console.log("Attempting to send", amountPerRecipient, "to", recipient);
+            (bool success, ) = payable(recipient).call{value: amountPerRecipient}("");
             if (!success) {
+                console.log("Transfer FAILED for recipient:", recipient);
                 revert FundingDistributor__TransferFailed(recipient, amountPerRecipient);
             }
+             console.log("Transfer SUCCEEDED for recipient:", recipient);
         }
+        console.log("Fund distribution loop finished.");
 
         // 10. Emit event
+        console.log("Emitting FundsDistributed event.");
         emit FundsDistributed(proposalId, winningRecipients, amountPerRecipient);
+        console.log("FundsDistributed event emitted.");
     }
 
     // --- Helper functions (optional, potentially internal/private) ---
