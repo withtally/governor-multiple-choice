@@ -1,1 +1,1 @@
-test_Emit_ProposalCreated_MultipleChoice
+test_E2E_ExecutionNotDependentOnWinningOption|test_E2E_MajorityWins_RequiresOver50Percent
