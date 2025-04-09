@@ -355,6 +355,314 @@ contract FundingDistributorTest is Test {
         vm.expectRevert(abi.encodeWithSelector(FundingDistributor.FundingDistributor__UnauthorizedCaller.selector, OTHER_ADDRESS));
         distributor.distribute(123, 1, new address[](0));
     }
+
+    // --- Integration Tests --- //
+
+    // --- Input Validation Tests (using _createAndPrepareDistroProposal) ---
+
+    function test_Integration_RevertWhen_InvalidProposalState_Pending() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](2); options[0]="A"; options[1]="B";
+        address[] memory recipients = new address[](2); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_1;
+        uint8 topN = 1;
+        address[] memory voters = new address[](0); // No voters needed
+        uint8[] memory votes = new uint8[](0);
+
+        // Create proposal BUT DO NOT advance time past voting delay
+        vm.deal(address(distributor), initialFunding);
+        bytes memory distributeCalldata = abi.encodeWithSelector(FundingDistributor.distribute.selector, 0, topN, recipients);
+        bytes[] memory tempCalldatas = new bytes[](1); tempCalldatas[0] = distributeCalldata;
+        vm.startPrank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, tempCalldatas, description, options);
+        vm.stopPrank();
+
+        // Verify state is Pending
+        assertEq(uint(governor.state(proposalId)), uint(IGovernor.ProposalState.Pending));
+
+        // Prepare final calldata for execution attempt (even though it shouldn't get scheduled)
+        distributeCalldata = abi.encodeWithSelector(FundingDistributor.distribute.selector, proposalId, topN, recipients);
+        calldatas[0] = distributeCalldata;
+
+        // Attempting to schedule/execute a Pending proposal should fail.
+        // Timelock's scheduleBatch likely won't be callable by Governor if state isn't Succeeded.
+        // Let's test the direct call to distributor first, simulating Timelock bypass (requires prank)
+        vm.startPrank(address(timelock));
+        vm.expectRevert(abi.encodeWithSelector(FundingDistributor.FundingDistributor__InvalidProposalState.selector, proposalId, IGovernor.ProposalState.Pending));
+        distributor.distribute(proposalId, topN, recipients);
+        vm.stopPrank();
+    }
+
+    function test_Integration_RevertWhen_InvalidProposalState_Active() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](2); options[0]="A"; options[1]="B";
+        address[] memory recipients = new address[](2); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_1;
+        uint8 topN = 1;
+        address[] memory voters = new address[](0); // No voters needed
+        uint8[] memory votes = new uint8[](0);
+
+        // Create proposal and advance time INTO voting period
+        vm.deal(address(distributor), initialFunding);
+        bytes memory distributeCalldata = abi.encodeWithSelector(FundingDistributor.distribute.selector, 0, topN, recipients);
+        bytes[] memory tempCalldatas = new bytes[](1); tempCalldatas[0] = distributeCalldata;
+        vm.startPrank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, tempCalldatas, description, options);
+        vm.stopPrank();
+        vm.roll(block.number + governor.votingDelay() + 1);
+
+        // Verify state is Active
+        assertEq(uint(governor.state(proposalId)), uint(IGovernor.ProposalState.Active));
+
+        // Simulate Timelock calling distribute while proposal is Active
+        vm.startPrank(address(timelock));
+        vm.expectRevert(abi.encodeWithSelector(FundingDistributor.FundingDistributor__InvalidProposalState.selector, proposalId, IGovernor.ProposalState.Active));
+        distributor.distribute(proposalId, topN, recipients);
+        vm.stopPrank();
+    }
+
+    // Note: Testing Defeated/Canceled states directly might be hard as Timelock wouldn't execute.
+    // These tests simulate a bypass where Timelock *could* call distributor.
+
+    function test_Integration_RevertWhen_RecipientArrayMismatch() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](3); options[0]="A"; options[1]="B"; options[2]="C";
+        address[] memory recipients_wrong = new address[](2); // Intentionally wrong length
+        recipients_wrong[0]=RECIPIENT_0; recipients_wrong[1]=RECIPIENT_1;
+        uint8 topN = 1;
+        address[] memory voters = new address[](1); voters[0]=VOTER_B;
+        uint8[] memory votes = new uint8[](1); votes[0]=0;
+
+        // Create proposal with the *invalid* calldata from the start
+        vm.deal(address(distributor), initialFunding);
+        bytes memory initialInvalidCalldata = abi.encodeWithSelector(
+            FundingDistributor.distribute.selector,
+            0, // Placeholder ID
+            topN,
+            recipients_wrong // Use wrong array here
+        );
+        bytes[] memory tempCalldatas = new bytes[](1); tempCalldatas[0] = initialInvalidCalldata;
+
+        vm.startPrank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, tempCalldatas, description, options);
+        vm.stopPrank();
+
+        // Vote to make it succeed
+        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.startPrank(VOTER_B); governor.castVoteWithOption(proposalId, 0); vm.stopPrank();
+        vm.roll(block.number + governor.votingPeriod() + 1);
+        require(governor.state(proposalId) == IGovernor.ProposalState.Succeeded, "Proposal did not succeed");
+
+        // Prepare the *final* invalid calldata for scheduling/execution
+        bytes memory finalInvalidCalldata = abi.encodeWithSelector(
+            FundingDistributor.distribute.selector,
+            proposalId,
+            topN,
+            recipients_wrong // Use wrong array here again
+        );
+        calldatas[0] = finalInvalidCalldata;
+
+        // Schedule
+        vm.startPrank(address(governor));
+        timelock.scheduleBatch(targets, values, calldatas, bytes32(0), descriptionHash, timelockMinDelay);
+        vm.stopPrank();
+
+        // Wait
+        vm.warp(block.timestamp + timelock.getMinDelay() + 1);
+        vm.roll(block.number + 1);
+
+        // Execute expecting the revert from FundingDistributor
+        vm.expectRevert(abi.encodeWithSelector(FundingDistributor.FundingDistributor__RecipientArrayLengthMismatch.selector, proposalId, 3, 2));
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+    }
+
+    function test_Integration_RevertWhen_InvalidTopN_Zero() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](3); options[0]="A"; options[1]="B"; options[2]="C";
+        address[] memory recipients = new address[](3); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_1; recipients[2]=RECIPIENT_2;
+        uint8 topN_invalid = 0; // Invalid topN
+        address[] memory voters = new address[](1); voters[0]=VOTER_B;
+        uint8[] memory votes = new uint8[](1); votes[0]=0;
+
+        // Create proposal with the *invalid* calldata (invalid topN) from the start
+        vm.deal(address(distributor), initialFunding);
+        bytes memory initialInvalidCalldata = abi.encodeWithSelector(
+            FundingDistributor.distribute.selector, 0, topN_invalid, recipients);
+        bytes[] memory tempCalldatas = new bytes[](1); tempCalldatas[0] = initialInvalidCalldata;
+        vm.startPrank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, tempCalldatas, description, options);
+        vm.stopPrank();
+
+        // Vote to make it succeed
+        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.startPrank(VOTER_B); governor.castVoteWithOption(proposalId, 0); vm.stopPrank();
+        vm.roll(block.number + governor.votingPeriod() + 1);
+        require(governor.state(proposalId) == IGovernor.ProposalState.Succeeded, "Proposal did not succeed");
+
+        // Prepare final invalid calldata
+        bytes memory finalInvalidCalldata = abi.encodeWithSelector(
+            FundingDistributor.distribute.selector, proposalId, topN_invalid, recipients);
+        calldatas[0] = finalInvalidCalldata;
+
+        // Schedule
+        vm.startPrank(address(governor));
+        timelock.scheduleBatch(targets, values, calldatas, bytes32(0), descriptionHash, timelockMinDelay);
+        vm.stopPrank();
+        // Wait
+        vm.warp(block.timestamp + timelock.getMinDelay() + 1); vm.roll(block.number + 1);
+
+        // Execute expecting the revert from FundingDistributor
+        vm.expectRevert(abi.encodeWithSelector(FundingDistributor.FundingDistributor__InvalidTopN.selector, topN_invalid, 3));
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+    }
+
+    function test_Integration_RevertWhen_InvalidTopN_TooLarge() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](3); options[0]="A"; options[1]="B"; options[2]="C";
+        address[] memory recipients = new address[](3); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_1; recipients[2]=RECIPIENT_2;
+        uint8 topN_invalid = 4; // Invalid topN
+        address[] memory voters = new address[](1); voters[0]=VOTER_B;
+        uint8[] memory votes = new uint8[](1); votes[0]=0;
+
+        // Create proposal with the *invalid* calldata (invalid topN) from the start
+        vm.deal(address(distributor), initialFunding);
+        bytes memory initialInvalidCalldata = abi.encodeWithSelector(
+            FundingDistributor.distribute.selector, 0, topN_invalid, recipients);
+        bytes[] memory tempCalldatas = new bytes[](1); tempCalldatas[0] = initialInvalidCalldata;
+        vm.startPrank(PROPOSER);
+        uint256 proposalId = governor.propose(targets, values, tempCalldatas, description, options);
+        vm.stopPrank();
+
+        // Vote to make it succeed
+        vm.roll(block.number + governor.votingDelay() + 1);
+        vm.startPrank(VOTER_B); governor.castVoteWithOption(proposalId, 0); vm.stopPrank();
+        vm.roll(block.number + governor.votingPeriod() + 1);
+        require(governor.state(proposalId) == IGovernor.ProposalState.Succeeded, "Proposal did not succeed");
+
+        // Prepare final invalid calldata
+        bytes memory finalInvalidCalldata = abi.encodeWithSelector(
+            FundingDistributor.distribute.selector, proposalId, topN_invalid, recipients);
+        calldatas[0] = finalInvalidCalldata;
+
+        // Schedule
+        vm.startPrank(address(governor));
+        timelock.scheduleBatch(targets, values, calldatas, bytes32(0), descriptionHash, timelockMinDelay);
+        vm.stopPrank();
+        // Wait
+        vm.warp(block.timestamp + timelock.getMinDelay() + 1); vm.roll(block.number + 1);
+
+        // Execute expecting the revert from FundingDistributor
+        vm.expectRevert(abi.encodeWithSelector(FundingDistributor.FundingDistributor__InvalidTopN.selector, topN_invalid, 3));
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+    }
+
+    // --- Funding Edge Case Tests --- //
+
+    function test_Integration_Funding_ZeroBalance() public {
+        uint256 initialFunding = 0 ether; // Zero initial funding
+        string[] memory options = new string[](3); options[0]="A"; options[1]="B"; options[2]="C";
+        address[] memory recipients = new address[](3); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_1; recipients[2]=RECIPIENT_2;
+        uint8 topN = 1;
+        address[] memory voters = new address[](1); voters[0]=VOTER_B; // Vote for A
+        uint8[] memory votes = new uint8[](1); votes[0]=0;
+
+        uint256 proposalId = _createAndPrepareDistroProposal(options, topN, recipients, voters, votes, true, initialFunding);
+
+        // Record logs - expect amountPerRecipient = 0
+        vm.recordLogs();
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Check log
+        bool eventFound = false;
+        bytes32 expectedTopic0 = keccak256("FundsDistributed(uint256,address[],uint256)");
+        bytes32 expectedTopic1 = bytes32(proposalId);
+        address[] memory expectedWinners = new address[](1); expectedWinners[0] = RECIPIENT_0;
+        bytes memory expectedData = abi.encode(expectedWinners, 0); // Expect amount 0
+
+        for (uint i = 0; i < logs.length; i++) {
+            if (logs[i].emitter == address(distributor) && logs[i].topics[0] == expectedTopic0) {
+                assertEq(logs[i].topics.length, 2);
+                assertEq(logs[i].topics[1], expectedTopic1);
+                assertEq(logs[i].data, expectedData, "Event data mismatch (expected amount 0)");
+                eventFound = true;
+                break;
+            }
+        }
+        assertTrue(eventFound, "FundsDistributed event not found");
+
+        // Verify balances haven't changed
+        assertEq(address(distributor).balance, 0);
+        assertEq(RECIPIENT_0.balance, 0);
+    }
+
+    function test_Integration_Funding_DustBalance() public {
+        uint256 initialFunding = 5 wei; // Less than number of winners
+        string[] memory options = new string[](4); options[0]="A"; options[1]="B"; options[2]="C"; options[3]="D";
+        address[] memory recipients = new address[](4); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_1; recipients[2]=RECIPIENT_2; recipients[3]=RECIPIENT_3;
+        uint8 topN = 3; // 3 winners expected
+        // Make A, B, C win
+        address[] memory voters = new address[](3); voters[0]=VOTER_A; voters[1]=VOTER_B; voters[2]=VOTER_C;
+        uint8[] memory votes = new uint8[](3); votes[0]=0; votes[1]=1; votes[2]=2;
+
+        uint256 proposalId = _createAndPrepareDistroProposal(options, topN, recipients, voters, votes, true, initialFunding);
+
+        // Record logs - expect amountPerRecipient = 1 (5 wei / 3 winners)
+        vm.recordLogs();
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Check log
+        bool eventFound = false;
+        bytes32 expectedTopic0 = keccak256("FundsDistributed(uint256,address[],uint256)");
+        bytes32 expectedTopic1 = bytes32(proposalId);
+        uint256 expectedAmount = 1; // 5 wei / 3 winners = 1 wei each
+        // Expected recipients, order doesn't matter for check
+        address[] memory expectedWinnersSet = new address[](3); 
+        expectedWinnersSet[0] = RECIPIENT_0; 
+        expectedWinnersSet[1] = RECIPIENT_1; 
+        expectedWinnersSet[2] = RECIPIENT_2;
+
+        for (uint i = 0; i < logs.length; i++) {
+            if (logs[i].emitter == address(distributor) && logs[i].topics[0] == expectedTopic0) {
+                assertEq(logs[i].topics.length, 2);
+                assertEq(logs[i].topics[1], expectedTopic1);
+
+                // Decode the event data
+                (address[] memory emittedRecipients, uint256 emittedAmount) = 
+                    abi.decode(logs[i].data, (address[], uint256));
+
+                // Check amount
+                assertEq(emittedAmount, expectedAmount, "Event amount mismatch");
+
+                // Check recipients count
+                assertEq(emittedRecipients.length, expectedWinnersSet.length, "Recipient count mismatch");
+
+                // Check if all expected recipients are present (order-independent)
+                uint foundCount = 0;
+                for(uint j = 0; j < expectedWinnersSet.length; j++) {
+                    for(uint k = 0; k < emittedRecipients.length; k++) {
+                        if (expectedWinnersSet[j] == emittedRecipients[k]) {
+                            foundCount++;
+                            break; // Found this expected recipient, move to next one
+                        }
+                    }
+                }
+                assertEq(foundCount, expectedWinnersSet.length, "Mismatch in emitted recipients set");
+
+                eventFound = true;
+                break;
+            }
+        }
+        assertTrue(eventFound, "FundsDistributed event not found");
+
+        // Verify balances (2 wei should remain)
+        assertEq(address(distributor).balance, initialFunding - (expectedAmount * 3), "Distributor balance incorrect");
+        assertEq(RECIPIENT_0.balance, expectedAmount);
+        assertEq(RECIPIENT_1.balance, expectedAmount);
+        assertEq(RECIPIENT_2.balance, expectedAmount);
+    }
+
+    // TODO: Test large balance
+
 }
 
 contract RejectReceiver {

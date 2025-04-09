@@ -111,4 +111,47 @@
 - [x] Verifying example code in documentation works correctly (Added to README)
 - [x] Verifying interfaces are documented correctly (NatSpec added)
 - [x] Verifying events are documented correctly (NatSpec added)
-- [x] Verifying error messages are documented correctly (NatSpec added) 
+- [x] Verifying error messages are documented correctly (NatSpec added)
+
+## FundingDistributor Tests
+
+### Unit Tests
+- [x] Rejects calls not from Timelock (`test_Unit_RevertWhen_CallerNotTimelock`)
+
+### Integration Tests (Happy Path)
+- [x] Top 1 winner, clear majority
+- [x] Top 2 winners, distinct 1st/2nd
+- [x] Top 2 winners, tie for 2nd
+- [x] Top 2 requested, 3-way tie for 1st (all 3 funded)
+
+### Integration Tests (Revert Scenarios)
+- [x] Reverts if the only winner maps to `address(0)` (`test_Integration_RevertWhen_NoWinners`)
+- [x] Reverts if ETH transfer fails (`test_Integration_RevertWhen_TransferFails`)
+
+### Integration Tests (Input Validation)
+- [ ] Reverts on invalid proposal state (Pending)
+- [ ] Reverts on invalid proposal state (Active)
+- [ ] Reverts on invalid proposal state (Defeated) // *May revert earlier in Timelock*
+- [ ] Reverts on invalid proposal state (Canceled) // *May revert earlier in Timelock*
+- [ ] Reverts on `recipientsByOptionIndex` length mismatch
+- [ ] Reverts on `topN = 0`
+- [ ] Reverts on `topN > optionCount`
+
+### Integration Tests (Funding Edge Cases)
+- [ ] Distributor has zero balance (emits 0 amount)
+- [ ] Distributor has dust balance (< winners, emits 0 amount)
+- [ ] Distributor has very large balance (gas/overflow check)
+
+### Integration Tests (Winner/Recipient Edge Cases)
+- [ ] `topN == optionCount` funds all valid recipients with >0 votes
+- [ ] Reverts if all winning options map to `address(0)`
+- [ ] Duplicate recipient address receives multiple payouts
+- [ ] Distributor contract itself as a recipient
+
+### Integration Tests (State & Re-entrancy)
+- [ ] Calling `distribute` twice on an executed proposal (expected behavior? currently allowed)
+- [ ] Basic re-entrancy check (low priority due to Timelock context)
+
+### Integration Tests (Gas)
+- [ ] Max winners (10) distribution gas usage
+- [ ] Recipient with high gas consumption on receive 
