@@ -240,6 +240,82 @@ The proposal's actions (target contracts, function calls, etc.) remain the same 
 
 This design allows for flexible governance processes while maintaining compatibility with the standard OpenZeppelin Governor framework.
 
+## FundingDistributor Module (Optional)
+
+This project includes an optional `FundingDistributor` contract that allows DAOs to distribute funds (ETH) based on the outcome of a multiple-choice vote.
+
+### Concept
+
+A proposal can be created targeting the `FundingDistributor.distribute` function. This function takes:
+1.  The `proposalId` of the relevant multiple-choice proposal.
+2.  `topN`: The number of top winning options whose associated recipients should receive funds.
+3.  `recipientsByOptionIndex`: An array mapping each option index to the recipient address that should be paid if that option is among the top N winners.
+
+When the proposal is executed by the Timelock, the `distribute` function:
+1.  Retrieves the vote counts for the specified `proposalId` from the `GovernorCountingMultipleChoice` contract.
+2.  Identifies the top `N` winning options (including ties).
+3.  Divides the entire ETH balance held by the `FundingDistributor` contract equally among the recipients associated with the winning options.
+4.  Transfers the calculated amount to each winning recipient.
+
+### Usage Example
+
+1.  **Deploy `FundingDistributor`:**
+    ```solidity
+    // Deploy alongside Governor and Timelock
+    FundingDistributor distributor = new FundingDistributor(
+        address(governor),
+        address(timelock),
+        deployerAddress // Initial owner
+    );
+    ```
+
+2.  **Fund the Distributor:** Send ETH to the `distributor` contract address.
+    ```solidity
+    vm.deal(address(distributor), 10 ether);
+    ```
+
+3.  **Create a Proposal targeting `distribute`:**
+    ```solidity
+    // Define options for the MC proposal (unrelated to distributor target)
+    string[] memory mcOptions = new string[](3);
+    mcOptions[0] = "Project Alpha Funding";
+    mcOptions[1] = "Project Beta Funding";
+    mcOptions[2] = "Project Gamma Funding";
+
+    // Define recipients for each option
+    address[] memory recipients = new address[](3);
+    recipients[0] = address(projectAlphaWallet);
+    recipients[1] = address(projectBetaWallet);
+    recipients[2] = address(projectGammaWallet);
+
+    // Proposal parameters
+    uint8 topN = 2; // Fund the top 2 projects
+    uint256 mcProposalId = 0; // Placeholder - actual ID needed later
+
+    // Encode the call to distributor.distribute
+    // IMPORTANT: The mcProposalId used here MUST match the ID of the proposal being created below.
+    // This requires a two-step process or careful ID prediction if done in one script.
+    // For testing, we update this calldata after proposal creation.
+    bytes memory distributeCalldata = abi.encodeWithSelector(
+        FundingDistributor.distribute.selector,
+        mcProposalId, // *** Use the ACTUAL ID of the MC proposal ***
+        topN,
+        recipients
+    );
+
+    // Set up the proposal execution details
+    address[] memory targets = new address[](1); targets[0] = address(distributor);
+    uint256[] memory values = new uint256[](1); values[0] = 0;
+    bytes[] memory calldatas = new bytes[](1); calldatas[0] = distributeCalldata;
+    string memory description = "Distribute 10 ETH to top 2 voted projects";
+
+    // Propose the multiple choice proposal that will trigger the distribution
+    mcProposalId = governor.propose(targets, values, calldatas, description, mcOptions);
+
+    // --- Now proceed with voting, queuing, and executing mcProposalId ---
+    // When executed, the Timelock will call distributor.distribute(...)
+    ```
+
 ## Testing
 
 The project includes a comprehensive test suite covering:
