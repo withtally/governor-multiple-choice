@@ -663,6 +663,164 @@ contract FundingDistributorTest is Test {
 
     // TODO: Test large balance
 
+    // --- Winner/Recipient Edge Case Tests --- //
+
+    function test_Integration_WinnerRecipient_TopN_Equals_OptionCount() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](3); options[0]="A"; options[1]="B"; options[2]="C";
+        address[] memory recipients = new address[](3); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_1; recipients[2]=RECIPIENT_2;
+        uint8 topN = 3; // topN equals option count
+        // A=100, B=200, C=300 votes. All should win.
+        address[] memory voters = new address[](3); voters[0]=VOTER_A; voters[1]=VOTER_B; voters[2]=VOTER_C;
+        uint8[] memory votes = new uint8[](3); votes[0]=0; votes[1]=1; votes[2]=2;
+
+        uint256 proposalId = _createAndPrepareDistroProposal(options, topN, recipients, voters, votes, true, initialFunding);
+
+        vm.recordLogs();
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Check log - Expect 3 winners
+        bool eventFound = false;
+        bytes32 expectedTopic0 = keccak256("FundsDistributed(uint256,address[],uint256)");
+        bytes32 expectedTopic1 = bytes32(proposalId);
+        uint256 expectedAmount = initialFunding / 3;
+        address[] memory expectedWinnersSet = new address[](3); 
+        expectedWinnersSet[0] = RECIPIENT_0; expectedWinnersSet[1] = RECIPIENT_1; expectedWinnersSet[2] = RECIPIENT_2;
+
+        for (uint i = 0; i < logs.length; i++) {
+            if (logs[i].emitter == address(distributor) && logs[i].topics[0] == expectedTopic0) {
+                (address[] memory emittedRecipients, uint256 emittedAmount) = abi.decode(logs[i].data, (address[], uint256));
+                assertEq(emittedAmount, expectedAmount, "Event amount mismatch");
+                assertEq(emittedRecipients.length, 3, "Recipient count mismatch");
+                
+                // Manual check for recipient presence
+                uint foundCount = 0;
+                for(uint j=0; j < expectedWinnersSet.length; j++) {
+                    bool recipientFound = false;
+                    for(uint k=0; k < emittedRecipients.length; k++) {
+                        if (expectedWinnersSet[j] == emittedRecipients[k]) {
+                            recipientFound = true;
+                            break;
+                        }
+                    }
+                    assertTrue(recipientFound, string(abi.encodePacked("Expected recipient not found: ", vm.toString(expectedWinnersSet[j]))));
+                }
+
+                eventFound = true;
+                break;
+            }
+        }
+        assertTrue(eventFound, "FundsDistributed event not found");
+
+        // Verify balances
+        assertEq(address(distributor).balance, initialFunding - (expectedAmount * 3), "Distributor balance incorrect");
+        assertEq(RECIPIENT_0.balance, expectedAmount);
+        assertEq(RECIPIENT_1.balance, expectedAmount);
+        assertEq(RECIPIENT_2.balance, expectedAmount);
+    }
+
+    function test_Integration_WinnerRecipient_RevertWhen_AllWinnersAreAddressZero() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](2); options[0]="A"; options[1]="B";
+        // Both potential winners map to address(0)
+        address[] memory recipients = new address[](2); recipients[0]=address(0); recipients[1]=address(0);
+        uint8 topN = 1; // Request top 1
+        address[] memory voters = new address[](1); voters[0]=VOTER_A; // A votes for Option 0
+        uint8[] memory votes = new uint8[](1); votes[0]=0;
+
+        uint256 proposalId = _createAndPrepareDistroProposal(options, topN, recipients, voters, votes, true, initialFunding);
+
+        // Execute expecting revert because the only winner (A) corresponds to address(0)
+        vm.expectRevert(abi.encodeWithSelector(FundingDistributor.FundingDistributor__NoWinners.selector, proposalId));
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+
+        assertEq(address(distributor).balance, initialFunding);
+    }
+
+    function test_Integration_WinnerRecipient_DuplicateRecipientGetsMultiplePayouts() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](3); options[0]="A"; options[1]="B"; options[2]="C";
+        // Recipient 0 is mapped to two winning options (A and B)
+        address[] memory recipients = new address[](3); recipients[0]=RECIPIENT_0; recipients[1]=RECIPIENT_0; recipients[2]=RECIPIENT_2;
+        uint8 topN = 2; // Request top 2
+        // A votes A (100), B votes B (200). Winners A, B.
+        address[] memory voters = new address[](2); voters[0]=VOTER_A; voters[1]=VOTER_B;
+        uint8[] memory votes = new uint8[](2); votes[0]=0; votes[1]=1;
+
+        uint256 proposalId = _createAndPrepareDistroProposal(options, topN, recipients, voters, votes, true, initialFunding);
+
+        vm.recordLogs();
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Check log - Expect 2 winners (R0, R0)
+        bool eventFound = false;
+        bytes32 expectedTopic0 = keccak256("FundsDistributed(uint256,address[],uint256)");
+        bytes32 expectedTopic1 = bytes32(proposalId);
+        uint256 expectedAmount = initialFunding / 2; // Divided by 2 winners
+        address[] memory expectedWinnersInEvent = new address[](2); expectedWinnersInEvent[0] = RECIPIENT_0; expectedWinnersInEvent[1] = RECIPIENT_0;
+        bytes memory expectedData = abi.encode(expectedWinnersInEvent, expectedAmount);
+
+        for (uint i = 0; i < logs.length; i++) {
+            if (logs[i].emitter == address(distributor) && logs[i].topics[0] == expectedTopic0) {
+                 (address[] memory emittedRecipients, uint256 emittedAmount) = abi.decode(logs[i].data, (address[], uint256));
+                assertEq(emittedAmount, expectedAmount, "Event amount mismatch");
+                assertEq(emittedRecipients.length, 2, "Recipient count mismatch");
+                // Check R0 appears twice (can check exact data match here)
+                assertEq(logs[i].data, expectedData, "Event data mismatch"); 
+                eventFound = true;
+                break;
+            }
+        }
+         assertTrue(eventFound, "FundsDistributed event not found");
+
+        // Verify balances - R0 gets 2x amount
+        assertEq(address(distributor).balance, 0, "Distributor balance should be 0");
+        assertEq(RECIPIENT_0.balance, expectedAmount * 2, "Recipient 0 balance incorrect");
+        assertEq(RECIPIENT_2.balance, 0, "Recipient 2 balance incorrect");
+    }
+
+    function test_Integration_WinnerRecipient_DistributorAsRecipient() public {
+        uint256 initialFunding = 1 ether;
+        string[] memory options = new string[](2); options[0]="A"; options[1]="B";
+        // Option A winner maps to the distributor itself
+        address[] memory recipients = new address[](2); recipients[0]=address(distributor); recipients[1]=RECIPIENT_1;
+        uint8 topN = 1;
+        address[] memory voters = new address[](1); voters[0]=VOTER_A; // Vote A
+        uint8[] memory votes = new uint8[](1); votes[0]=0;
+
+        uint256 proposalId = _createAndPrepareDistroProposal(options, topN, recipients, voters, votes, true, initialFunding);
+
+        vm.recordLogs();
+        timelock.executeBatch(targets, values, calldatas, bytes32(0), descriptionHash);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        // Check log - Expect 1 winner (distributor)
+        bool eventFound = false;
+        bytes32 expectedTopic0 = keccak256("FundsDistributed(uint256,address[],uint256)");
+        bytes32 expectedTopic1 = bytes32(proposalId);
+        uint256 expectedAmount = initialFunding; // 1 winner
+        address[] memory expectedWinnersInEvent = new address[](1); expectedWinnersInEvent[0] = address(distributor);
+        bytes memory expectedData = abi.encode(expectedWinnersInEvent, expectedAmount);
+
+        for (uint i = 0; i < logs.length; i++) {
+            if (logs[i].emitter == address(distributor) && logs[i].topics[0] == expectedTopic0) {
+                 (address[] memory emittedRecipients, uint256 emittedAmount) = abi.decode(logs[i].data, (address[], uint256));
+                assertEq(emittedAmount, expectedAmount, "Event amount mismatch");
+                assertEq(emittedRecipients.length, 1, "Recipient count mismatch");
+                assertEq(logs[i].data, expectedData, "Event data mismatch");
+                eventFound = true;
+                break;
+            }
+        }
+        assertTrue(eventFound, "FundsDistributed event not found");
+
+        // Verify balances - Distributor balance remains the same (transfer to self)
+        assertEq(address(distributor).balance, initialFunding, "Distributor balance incorrect");
+        assertEq(RECIPIENT_1.balance, 0, "Recipient 1 balance incorrect");
+    }
+
 }
 
 contract RejectReceiver {
