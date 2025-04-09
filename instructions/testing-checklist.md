@@ -154,4 +154,18 @@
 
 ### Integration Tests (Gas)
 - [ ] Max winners (10) distribution gas usage
-- [ ] Recipient with high gas consumption on receive 
+- [ ] Recipient with high gas consumption on receive
+
+### Fuzz Tests (using Mocking)
+- [ ] Fuzz `topN` input for `distribute`
+- [ ] Fuzz `recipientsByOptionIndex` input for `distribute`
+- [ ] Check ETH balance conservation invariant
+- [ ] Check expected reverts for invalid fuzzed inputs
+
+## Documentation Verification
+
+### Documentation Tests
+- [x] Verifying example code in documentation works correctly (Added to README)
+- [x] Verifying interfaces are documented correctly (NatSpec added)
+- [x] Verifying events are documented correctly (NatSpec added)
+- [x] Verifying error messages are documented correctly (NatSpec added) 

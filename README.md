@@ -11,6 +11,92 @@ Governor Multiple Choice extends the standard OpenZeppelin Governor framework to
 - Evaluate results using different strategies (Plurality or Majority)
 - Maintain compatibility with all standard Governor features
 
+## Quickstart
+
+Here's how to quickly get started with Governor Multiple Choice:
+
+```bash
+# Install the project
+git clone https://github.com/yourusername/governor-multiple-choice.git
+cd governor-multiple-choice
+forge install
+forge build
+```
+
+### Step 1: Deploy the contracts
+
+```solidity
+// Deploy your governance token
+VotesToken token = new VotesToken("MyToken", "MTK");
+
+// Deploy timelock
+TimelockController timelock = new TimelockController(
+    1 days, // Delay
+    new address[](0), // Empty proposers array (will add governor)
+    new address[](0), // Empty executors array (will add address(0))
+    msg.sender // Admin
+);
+
+// Deploy governor with multiple choice
+GovernorCountingMultipleChoice governor = new GovernorCountingMultipleChoice(
+    IVotes(address(token)),
+    timelock,
+    "MyMultipleChoiceGovernor"
+);
+
+// Deploy evaluator
+MultipleChoiceEvaluator evaluator = new MultipleChoiceEvaluator(address(governor));
+
+// Connect everything
+governor.setEvaluator(address(evaluator));
+evaluator.setEvaluationStrategy(MultipleChoiceEvaluator.EvaluationStrategy.Plurality);
+timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
+timelock.grantRole(timelock.EXECUTOR_ROLE(), address(0));
+```
+
+### Step 2: Create a multiple choice proposal
+
+```solidity
+// Create a proposal with multiple options
+string[] memory options = new string[](3);
+options[0] = "Option A: Increase Development Budget";
+options[1] = "Option B: Increase Marketing Budget";
+options[2] = "Option C: Keep Funds in Treasury";
+
+// Create the proposal (same interface as standard propose with added options)
+uint256 proposalId = governor.propose(
+    targets,     // Address[] of contracts to call
+    values,      // uint256[] of ETH values to send
+    calldatas,   // bytes[] of function calls
+    description, // String description
+    options      // String[] of voting options
+);
+```
+
+### Step 3: Vote with specific options
+
+```solidity
+// Cast a vote for a specific option
+governor.castVoteWithOption(proposalId, 1); // Vote for "Option B"
+
+// Standard voting still works too
+governor.castVote(proposalId, 1); // 1 = For
+```
+
+### Step 4: Evaluate and execute
+
+```solidity
+// After voting period ends
+uint256 winningOption = evaluator.evaluate(proposalId);
+console.log("Winning option:", options[winningOption]);
+
+// Queue and execute the proposal (standard OZ Governor flow)
+governor.queue(targets, values, calldatas, descriptionHash);
+governor.execute(targets, values, calldatas, descriptionHash);
+```
+
+For distributing funds based on voting results, see the FundingDistributor section below.
+
 ## ⚠️ Security Disclaimer
 
 **IMPORTANT**: This software is **not audited** and should **not be used in production** without proper security audits. The contracts have been tested but have not undergone formal verification or auditing by security professionals. 
@@ -244,6 +330,75 @@ This design allows for flexible governance processes while maintaining compatibi
 
 This project includes an optional `FundingDistributor` contract that allows DAOs to distribute funds (ETH) based on the outcome of a multiple-choice vote.
 
+### Quickstart
+
+To quickly distribute funds based on governance voting:
+
+```solidity
+// 1. Deploy the distributor alongside your governance contracts
+FundingDistributor distributor = new FundingDistributor(
+    address(governor),
+    address(timelock),
+    adminAddress
+);
+
+// 2. Fund the distributor with ETH
+// Either in a transaction:
+(bool success, ) = address(distributor).call{value: 1 ether}("");
+require(success, "Funding failed");
+// Or during a test:
+vm.deal(address(distributor), 1 ether);
+
+// 3. Create a proposal targeting the distribute function
+address[] memory targets = new address[](1);
+targets[0] = address(distributor);
+
+uint256[] memory values = new uint256[](1);
+values[0] = 0; // No ETH being sent
+
+// Define multiple choice options and potential recipients
+string[] memory options = new string[](3);
+options[0] = "Fund Team A";
+options[1] = "Fund Team B";
+options[2] = "Fund Team C";
+
+// Map each option to a recipient address
+address[] memory recipients = new address[](3);
+recipients[0] = addressTeamA;
+recipients[1] = addressTeamB;
+recipients[2] = addressTeamC;
+
+// Number of top options to fund (can fund multiple winners)
+uint8 topN = 2; // Fund the top 2 winners
+
+// Create proposal calldata (this will be executed by timelock when proposal passes)
+bytes memory distributeCalldata = abi.encodeWithSelector(
+    FundingDistributor.distribute.selector,
+    0, // Placeholder - will be updated with actual proposalId
+    topN,
+    recipients
+);
+
+bytes[] memory calldatas = new bytes[](1);
+calldatas[0] = distributeCalldata;
+
+// 4. Create the proposal and get the actual proposalId
+uint256 proposalId = governor.propose(targets, values, calldatas, "Fund top projects", options);
+
+// 5. Update the calldata with the correct proposalId
+calldatas[0] = abi.encodeWithSelector(
+    FundingDistributor.distribute.selector,
+    proposalId,
+    topN,
+    recipients
+);
+
+// 6. After voting completes and proposal passes, the timelock 
+// will execute the distribute function, sending ETH to the winning recipients
+```
+
+The funds will be distributed evenly among the top `N` options that received the most votes.
+
 ### Concept
 
 A proposal can be created targeting the `FundingDistributor.distribute` function. This function takes:
@@ -256,6 +411,29 @@ When the proposal is executed by the Timelock, the `distribute` function:
 2.  Identifies the top `N` winning options (including ties).
 3.  Divides the entire ETH balance held by the `FundingDistributor` contract equally among the recipients associated with the winning options.
 4.  Transfers the calculated amount to each winning recipient.
+
+### Edge Cases
+
+The `FundingDistributor` handles several edge cases:
+
+1. **Ties in vote counts**: If there's a tie for the Nth position, all options with that vote count are included as winners.
+2. **Zero balance**: If the contract has no ETH, the distribution process completes successfully but transfers 0 ETH to recipients.
+3. **Dust amounts**: When the distribution results in fractional ETH amounts (e.g. 5 wei split among 3 recipients), each winner receives the integer division result, and any remainder stays in the contract.
+4. **Duplicate recipients**: If the same recipient address is mapped to multiple winning options, that recipient receives multiple payouts (one for each winning option).
+5. **Zero address recipients**: Options mapped to the zero address are excluded from the distribution even if they have winning vote counts.
+6. **Distributor as recipient**: If the distributor itself is specified as a recipient, it will effectively keep those funds.
+7. **Failed transfers**: If any ETH transfer to a recipient fails (e.g., a contract recipient that rejects ETH), the entire distribution reverts.
+
+### Error Handling
+
+The `FundingDistributor` implements comprehensive error handling:
+
+1. **Unauthorized caller**: Only the Timelock contract can call the `distribute` function.
+2. **Invalid proposal state**: The proposal must be in `Succeeded` or `Executed` state.
+3. **Recipient array mismatch**: The length of the `recipientsByOptionIndex` array must match the number of options in the proposal.
+4. **Invalid topN parameter**: The `topN` parameter must be greater than 0 and less than or equal to the number of options.
+5. **No winners**: Reverts if no eligible recipients are found (e.g., all winning options map to address(0)).
+6. **Transfer failures**: Reverts if any ETH transfer to a winning recipient fails.
 
 ### Usage Example
 

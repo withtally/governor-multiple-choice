@@ -129,60 +129,70 @@ contract FundingDistributor is Ownable {
         (, uint8 optionCount) = governorCM.proposalOptions(proposalId);
         if (recipientsByOptionIndex.length != optionCount) {
             revert FundingDistributor__RecipientArrayLengthMismatch(
-                proposalId, optionCount, recipientsByOptionIndex.length
+                proposalId,
+                optionCount,
+                recipientsByOptionIndex.length
             );
         }
         console.log("Recipient array length validation passed.");
 
-        // 4. Validate topN
-        if (topN == 0 || topN > optionCount) {
+        // 4. Validate topN using custom errors instead of require statements
+        if (topN == 0) {
             revert FundingDistributor__InvalidTopN(topN, optionCount);
         }
+        if (topN > optionCount) {
+            revert FundingDistributor__InvalidTopN(topN, optionCount);
+        }
+        
         console.log("topN validation passed.");
 
-        // 5. Fetch proposal option votes
+        // 5. Fetch proposal option votes (Now safe to use optionCount)
         OptionVote[] memory optionVotes = new OptionVote[](optionCount);
         for (uint8 i = 0; i < optionCount; i++) {
-            optionVotes[i] = OptionVote({index: i, votes: governorCM.proposalOptionVotes(proposalId, i)});
+            optionVotes[i] = OptionVote({
+                index: i,
+                votes: governorCM.proposalOptionVotes(proposalId, i)
+            });
         }
         console.log("Fetched option votes.");
 
         // 6. Identify top N winners (handle ties)
-        // Simple bubble sort (descending) - acceptable for small option counts (max 10)
+        console.log("Starting sort. OptionCount:", optionCount);
+        // Simple bubble sort (descending)
         for (uint8 i = 0; i < optionCount; i++) {
             for (uint8 j = i + 1; j < optionCount; j++) {
+                // console.log("Sort loop: i=", i, " j=", j);
                 if (optionVotes[j].votes > optionVotes[i].votes) {
+                    // console.log("Swapping", i, "and", j);
                     OptionVote memory temp = optionVotes[i];
                     optionVotes[i] = optionVotes[j];
                     optionVotes[j] = temp;
                 }
             }
         }
+        console.log("Sort finished.");
 
         // Determine the vote threshold (votes of the Nth option)
+        console.log("Calculating threshold. topN:", topN, "Accessing index:", topN - 1);
+        // Accessing topN - 1 is now safe due to the earlier check
         uint256 voteThreshold = optionVotes[topN - 1].votes;
+        console.log("Vote threshold:", voteThreshold);
 
         // Collect winning recipients
         address[] memory winningRecipients = new address[](optionCount); // Max possible size
         uint256 winnerCount = 0;
         for (uint8 i = 0; i < optionCount; i++) {
-            // Include if votes are above threshold, OR if votes equal threshold and we haven't reached N yet
-            // This correctly handles ties at the Nth position.
             if (optionVotes[i].votes >= voteThreshold && optionVotes[i].votes > 0) {
-                // Must have > 0 votes
-                // Check if the recipient address is valid (not zero address)
                 address recipient = recipientsByOptionIndex[optionVotes[i].index];
                 if (recipient != address(0)) {
                     winningRecipients[winnerCount] = recipient;
                     winnerCount++;
                 }
             } else {
-                // Since the list is sorted, we can break early if votes are below threshold
                 break;
             }
         }
 
-        // Resize the winners array
         assembly {
             mstore(winningRecipients, winnerCount)
         }
