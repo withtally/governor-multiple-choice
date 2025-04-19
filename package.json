@@ -1,0 +1,21 @@
+{
+  "name": "governor-multiple-choice",
+  "version": "1.0.0",
+  "description": "Multiple choice voting extension for OpenZeppelin Governor",
+  "author": "Dennison Bertram, Claude 3.7 and Google Gemini",
+  "license": "MIT",
+  "contact": "dennison@tally.xyz",
+  "homepage": "https://tally.xyz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/withtally/governor-multiple-choice"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "governance",
+    "dao",
+    "multiple-choice",
+    "voting"
+  ]
+}
